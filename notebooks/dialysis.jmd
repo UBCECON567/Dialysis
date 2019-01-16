@@ -1,0 +1,42 @@
+---
+title       : "Assignment: reproducing Grieco & McDevitt (2017)"
+subtitle    : 
+author      : Paul Schrimpf
+date        : `j using Dates; print(Dates.today())`
+bibliography: "../../../565.bib"
+
+---
+
+<a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative
+Commons License" style="border-width:0"
+src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"
+/></a><br />This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+Commons Attribution-ShareAlike 4.0 International License</a>.
+
+### About this document {-}
+
+This document was created using Weave.jl. The code is available in
+[on github](https://github.com/ECON567/GriecoMcDevitt). The same
+document generates both static webpages and associated jupyter
+notebooks.
+
+$$
+\def\indep{\perp\!\!\!\perp}
+\def\Er{\mathrm{E}}
+\def\R{\mathbb{R}}
+\def\En{{\mathbb{E}_n}}
+\def\Pr{\mathrm{P}}
+\newcommand{\norm}[1]{\left\Vert {#1} \right\Vert}
+\newcommand{\abs}[1]{\left\vert {#1} \right\vert}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\def\inprob{\,{\buildrel p \over \rightarrow}\,} 
+\def\indist{\,{\buildrel d \over \rightarrow}\,} 
+$$
+
+# Getting started 
+
+[https://vse.syzygy.ca](https://vse.syzygy.ca) provides a convenient
+browser based interface to Julia. Open it and log in. 
