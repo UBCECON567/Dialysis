@@ -205,6 +205,9 @@ git-tree-sha1 = "230d04188b262b0795144a5907b495fbc3ce8131"
 uuid = "48062228-2e41-5def-b9a4-89aafe57970f"
 version = "0.4.0"
 
+[[FileWatching]]
+uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
+
 [[FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "Test"]
 git-tree-sha1 = "471b7e33dc9c9c5b9170045dd57c8ba0927b2918"
@@ -519,6 +522,12 @@ git-tree-sha1 = "f6fbf4ba64d295e146e49e021207993b6b48c7d1"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "0.5.2"
 
+[[Revise]]
+deps = ["Distributed", "FileWatching", "InteractiveUtils", "LibGit2", "OrderedCollections", "Pkg", "REPL", "Random", "Test", "UUIDs", "Unicode"]
+git-tree-sha1 = "341be2df64de382559e2cc307e02ed4192f8a8b7"
+uuid = "295af30f-e4ad-537b-8983-00126c2a3abe"
+version = "1.0.2"
+
 [[Rmath]]
 deps = ["BinaryProvider", "Libdl", "Random", "Statistics", "Test"]
 git-tree-sha1 = "9a6c758cdf73036c3239b0afbea790def1dabff9"
@@ -602,9 +611,9 @@ version = "0.7.0"
 
 [[StatsModels]]
 deps = ["Compat", "DataFrames", "StatsBase", "Test"]
-git-tree-sha1 = "8af0d8dbcdee59daa386167ee0cf0278e5c44263"
+git-tree-sha1 = "27144bb39ce2a1b3da7f21f8a4dd90fa3983b489"
 uuid = "3eaba693-59b7-5ba5-a881-562e759f1c8d"
-version = "0.3.1"
+version = "0.4.0"
 
 [[SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "SparseArrays"]

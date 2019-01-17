@@ -17,7 +17,7 @@ Commons Attribution-ShareAlike 4.0 International License</a>.
 ### About this document {-}
 
 This document was created using Weave.jl. The code is available in
-[on github](https://github.com/ECON567/GriecoMcDevitt). The same
+[on github](https://github.com/ECON567/Dialysis). The same
 document generates both static webpages and associated jupyter
 notebooks.
 
@@ -66,7 +66,7 @@ notebook.
 
 Notebooks consist of a series of "cells" of either text written in
 markdown or Julia code. If you double click on any of the text cells,
-you can see the markdown that created it. To go pack to the formatted
+you can see the markdown that created it. To go back to the formatted
 text, execute the cell by either clicking the play icon on the top of
 the page or typing ctrl and enter together. 
 
