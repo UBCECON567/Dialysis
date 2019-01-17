@@ -3,8 +3,7 @@ title       : "Assignment: reproducing Grieco & McDevitt (2017)"
 subtitle    : 
 author      : Paul Schrimpf
 date        : `j using Dates; print(Dates.today())`
-bibliography: "../../../565.bib"
-
+bibliography: "dialysis.bib"
 ---
 
 <a rel="license"
@@ -36,7 +35,11 @@ $$
 \def\indist{\,{\buildrel d \over \rightarrow}\,} 
 $$
 
-# Getting started 
+# Introduction
+
+This assignment will reproduce some of the results of @grieco2017. 
+
+## Getting started 
 
 [https://vse.syzygy.ca](https://vse.syzygy.ca) provides a convenient
 browser based interface to Julia. Open it and log in. This assignment
@@ -67,6 +70,47 @@ you can see the markdown that created it. To go pack to the formatted
 text, execute the cell by either clicking the play icon on the top of
 the page or typing ctrl and enter together. 
 
+
+## Julia resources
+
+This assignment will try to explain aspects of Julia as
+needed. However, it at some point you feel lost, you may want to
+consult some of the following resources. Reading the first few
+sections of either QuantEcon or Think Julia is recommended.
+
+### Resources
+
+- [QuantEcon with Julia](https://lectures.quantecon.org/jl/)
+
+- [Think Julia](https://benlauwens.github.io/ThinkJulia.jl/latest/book.html#_colophon) 
+  A detailed introduction to Julia and programming more
+  generally. Long, but recommended, especially if you're new to
+  programming. 
+
+- From the julia prompt, you can access documentation with
+  `?functionname`. Some packages have better documentation than
+  others. 
+
+- [https://julialang.org/](https://julialang.org/) is the website for
+  Julia
+  
+- Documentation for core Julia can be found at
+  [https://docs.julialang.org/en/v1/](https://docs.julialang.org/en/v1/). All
+  Julia packages also have a github page. Many of these will include
+  package specific documentation.
+
+- [Notes on Julia from ECON
+  628](https://github.com/ubcecon/ECON628_2018) much of this is part
+  of QuantEcon, but not all
+
+- [The Julia Express](https://github.com/bkamins/The-Julia-Express)
+  short book with examples of Julia usage
+  
+
+<!-- -------------------------------------------------------------------------------- -->
+
+# Part I: Loading and exploring the data
+
 ## Loading packages
 
 Like many programming environments (R, Python, etc), Julia relies on
@@ -81,7 +125,8 @@ executed. You can execute cells out of order. This can be useful
 during development, but you should always make sure that your notebook
 works correctly when cells are executed in order before considering it
 complete (that is, make sure the "Run -> Restart Kernel and Run all
-Cells" menu option produces the output you want). 
+Cells" menu option produces the output you want). Don't worry about
+understanding the details of the code in this section.
 
 ```julia
 using Pkg # loads the Pkg package 
@@ -93,6 +138,7 @@ Pkg.instantiate()  # installs all packages in the environment
 
 Some useful functions for this assignment are in
 `../src/Dialysis.jl`. We load those functions now. 
+
 ```julia
 using Revise
 if (!("../src" ∈ LOAD_PATH))
@@ -100,6 +146,7 @@ if (!("../src" ∈ LOAD_PATH))
 end
 using Dialysis
 ```
+
 The functions in Dialysis.jl are organized into a module, 
 just like any other Julia package. Revise.jl is a package to make it
 easier to develop packages (like Dialysis.jl). In particular, `using
@@ -108,44 +155,246 @@ Dialysis.jl, those modifications will be loaded into your Julia
 session without you doing anything extra. 
 
 
-## Julia basics
+## Load the data
 
-Hmmm...
+Now let's get to work. I originally downloaded the data for this
+problem set from
+[https://dialysisdata.org/content/dialysis-facility-report-data](https://dialysisdata.org/content/dialysis-facility-report-data).
+As in @grieco2017 the data comes from Dialysis Facility Reports (DFRs)
+created under contract to the Centers for Medicare and Medicaid
+Services (CMS). However, there are some differences. Most notably,
+this data covers 2006-2014, instead of 2004-2008 as in @grieco2017 .
 
-<!-- -------------------------------------------------------------------------------- -->
-
-# Loading and exploring the data
+The R script
+\href{https://bitbucket.org/paulschrimpf/econ565/src/master/assignments/production-R/dialysis/downloadDialysisData.R}{downloadDialysisData.R}
+downloads, combines, and cleans the data. dialysisdata.org
+has reorganized their website, and the data no longer seems to be
+available. Similar (perhaps identical) data appears to be available
+from
+[https://data.cms.gov/dialysis-facility-reports/archived](https://data.cms.gov/dialysis-facility-reports/archived),
+but I have not checked. Anyway, the result of the R script is the 
+`dialysisFacilityReports.rda` file contained in this git repository.
+This R data file contains most of the variables used by @grieco2017
 
 ```julia
-using DataFrames, Statistics
-dialysis = loaddata()
+using DataFrames  # DataFrames.jl is a package for storing and
+                  # interacting with datasets
+dialysis = loaddata() # loaddata() is a function I wrote that is part
+                      # of Dialysis.jl. It returns a DataFrame
+typeof(dialysis)
 ```
 
-ADD LIST OF VARIABLES, SOME SUMMARY STATISTICS
+We will begin our analysis with some exploratory statistics and
+figures. There are at least two reasons for this. First, we want to
+check for any anomalies in the data, which may indicate an error in
+our code, our understanding of the data, or the data itself. Second,
+we should try to see if there are any striking patterns in the data
+that deserve extra attention. We can get some information about all
+the variables in the data as follows
 
+```julia
+describe(dialysis)
+```
+
+The meaning of these variables are as follows:
+
+ Variable | Definition                                            
+----------|--------------------------------------------------------
+provfs | provider identifier
+year | year 
+comorbidities | average patient comorbidities
+hemoglobin | average patient hemoglobin level
+std_mortality | standardized mortality ratio
+std_hosp_days | standardized hospitalization days
+std_hosp_admit | standardized hospitalization admittance rate
+pct_septic | percent of patients hospitalized due to septic infection
+n_hosp_admit | number of hospitalizations
+n_hosp_patients | 
+patient_years_hd | patient years at risk of hospitalization
+city | city
+name | provider name
+state | state
+chain_name | name of chain if provider is part of one
+profit_status | whether for profit
+stations | number of dialysis stations
+total_staff | total staff
+dieticiansFT | full-time renal dieticians
+dieticiansPT | part-time renal dieticians
+nurseFT | full-time nurses (>32 hours/week)
+nursePT | part-time nurses (<32 hours/week)
+ptcareFT | full-time patient care technicians
+ptcarePT | part-time patient care technicians
+social_workerFT | full-time social workers
+social_workerPT | part-time social workers
+patient_months | number of patient-months treated during the year
+patient_years_rom | patient-years at risk of mortality
+pct_fistula | the percentage of patient months in which the patient received dialysis through arteriovenous (AV) fistulae
+pct_female | percent of female patients
+patient_age | average age of patients
+patient_esrd_years | average number of years patients have had end stage renal disease
+treatment_type | types of treatment provided at facility 
+inspect_date | date of most recent inspection
+inspect_result | result of most recent inspection
+inspect_cfc_cites | number of condition for coverage deficiencies in most recent inspection
+inspect_std_cites | number of standard deficiencies in most recent inspection
+days_since_inspection | days since last inspection 
+
+The raw data contains information on many variables in each of the
+previous 4 years. Staffing variables with no suffix are staff as of
+January 31, year as reported in year + 1.  Staffing variables with
+``.l1'' are staff as of January 31, year - 1 as reported in year +
+1. If there were no reporting errors, the .l1 variables would equal
+the lag of the ones without .l1. However, you might find that this is
+not the case.
+
+As explained in downloadDialysisData.R, data collected in year Y has
+information on most variables in years Y-1, Y-2, Y-3, and
+Y-4. However, for some variables and survey years, only information in
+years Y-2, Y-3, Y-4 is included. For such variables, at year Y-1, I
+use the value reported in survey year Y if it is available. If not, I
+use the value reported in survey year Y+1. The variables ending with
+``.p3'' instead use the convention to use use Y-2 values if available
+and the Y-1 ones if not. Again, if there were no reporting errors the
+variables with and without .p3 would be the same. 
+
+There are three variables for the number of patients treated. The data
+documentation describes `patient_months` as
+
+"Prevalent Hemodialysis Patient Months (7a): The monthly prevalent
+hemodialysis patient count at a facility includes all non-transient
+patients (home and in-center) who receive hemodialysis as of the last
+day of that calendar month. Incident patients (those who received ESRD
+treatment for the first time ever) are included in this count.  Row 7a
+reports the number of prevalent hemodialysis patient months  reported
+at  the  facility  each  year.  The  number  of  patient  months  over
+a  time period  is  the  sum  of  patients  reported  for  the  months
+covered  by  the  time  period.  An individual patient may contribute
+up to 12 patient months per year."
+
+`patient_years_rom` is the number of patient years at risk of
+mortality. `patient_years_hd` is number of patient years at risk of
+hospitalization. Since hospitalization data is constructed from
+Medicare records, a patient is considered at risk of hospitalization
+only when one can be reasonably certain that a hospitalization would
+be billed to Medicare. Dialysis patients who pay for for
+hospitalization with other methods could have unobserved
+hospitalizations. The data guide explains,
+
+"Ideally, this table includes only patients whose Medicare billing
+records include all hospitalizations for the period.  To achieve this
+goal, we require that patients reach a certain level of Medicare-paid
+dialysis bills to be included in hospitalization statistics, or that
+patients have Medicare-paid inpatient claims during the period.  For
+the purpose of analysis, each patient’s follow-up time is broken into
+periods defined by time since dialysis initiation. For each patient,
+months within a given period are included if that month in the period
+is considered ‘eligible’; a month is deemed eligible if it is within
+two months of a month having at least \$900 of Medicare-paid dialysis
+claims or at least one Medicare-paid inpatient claim.  In setting this
+criterion, our aim is to achieve completeness of information on
+hospitalizations for all patients included in the years at risk."
 
 ## Create some variables
+
+Not all variables used @grieco2017 are included here. Some
+variables will need to be transformed to be comparable to what is in
+the paper. For example, net investment in stations in year $t$ is the
+difference between the number of stations in year $t+1$ and year in
+$t$.
+
 ```julia
+# sort data by :provfs, :year
+# function names that end with ! indicate that the function will
+# modify one (or more) of its inputs. In this case, sort! modifies the
+# dialysis DataFrame
 sort!(dialysis, (:provfs, :year))
+# things starting with : are Symbols. Names of variables within a
+# DataFrame must be Symbols, so they all start with :
+
+# we can access a single column of DataFrame by writing
+# dialysis[:stations] . This will be a 1 dimensional Array containing
+# of length equal to the number of rows in the dialysis DataFrame
+
+# panellag is a function defined in Dialysis.jl it creates lags and
+# leads of variables in panel data. It will insert missing values
+# where appropriate.
+
+# putting dialysis[:invest] on the left will create a new column in
+# the dialysis dataframe
 dialysis[:invest] = panellag(:stations, dialysis, :provfs, :year, -1) -
-    dialysis[:stations]
+  dialysis[:stations]; # ; prevents the notebook from printing the
+# output of the last command. Otherwise, notebooks display the output
+# of the last command in each cell.
+```
+
+We can also create labor and hiring. Note that the choices of giving
+0.5 weight to part-time workers, including social workers, and
+weighting all types of staff equally are all somewhat arbitrary and
+may not agree exactly with what @grieco2017 did. 
+
+```julia
 dialysis[:labor] = (dialysis[:nurseFT] + 0.5*dialysis[:nursePT]+
-                      dialysis[:ptcareFT] + 0.5*dialysis[:ptcarePT])
+                    dialysis[:ptcareFT] + 0.5*dialysis[:ptcarePT] +
+                    dialysis[:dieticiansFT] + 0.5*dialysis[:dieticiansPT] +
+                    dialysis[:social_workerFT] + 0.5*dialysis[:social_workerPT])
 dialysis[:hiring] = panellag(:labor, dialysis, :provfs, :year, -1) -
-    dialysis[:labor]
+  dialysis[:labor];
+```
+
+Creating for profit and chain indicators.
+```julia
+# create a Boolean for profit indicator
 dialysis[:for_profit] = dialysis[:profit_status].=="For Profit"
+# The dot in .== is an example of broadcasting. It's very common to
+# want to apply the same function to all elements of an
+# array. Broadcasting does exactly this. If A is an array, and f() is
+# a function that operates on scalars, then f.(A) will apply f to each
+# element of A and return an array of the results. The above .==
+# compares each element of the array dialysis[:profit_status] to the
+# scalar string "For Profit"
+
+# similarly create indicators for the two largest chains
+dialysis[:fresenius] = dialysis[:chain_name].=="FRESENIUS"
+dialysis[:davita] = dialysis[:chain_name].=="DAVITA";
+```
+
+State inspection rates are a bit more complicated to create.
+```julia
+using Statistics # for mean, std, and so on 
+# first make an indicator for inspected in the last year
 dialysis[:inspected_this_year] =
   ((dialysis[:days_since_inspection].>=0) .&
    (dialysis[:days_since_inspection].<365))
-stateRates = by(dialysis, :state, df ->
-                mean(skipmissing(df[:inspected_this_year])))
-rename!(stateRates, :x1 => :state_inspection_rate)
-dialysis = join(dialysis, stateRates, on = :state)
-dialysis[:fresenius] = dialysis[:chain_name].=="FRESENIUS"
-dialysis[:davita] = dialysis[:chain_name].=="DAVITA"
-dialysis[:city] = map(uppercase, dialysis[:city])
-dialysis[:patient_years] = dialysis[:patient_months]./12
+# then take the mean by state
+stateRates = by(dialysis, [:state, :year],
+                # by(data, :var, f) will apply f to each group of data
+                # with a different value of :var
+                df -> mean(skipmissing(df[:inspected_this_year])))
+# df -> mean(skipmissing(df[:inspected_this_year])) is a shorthand way
+# to define a function it's equalivant to
+#
+# function f(df)
+#   mean(skipmissing(df[:inspected_this_year]))
+# end
+#
+# skipmissing skips missing values inside a DataFrame. Most arithmetic
+# functions will not do what you want if missing values are included.
 
+# rename the variable in the stateRates DataFrame
+rename!(stateRates, :x1 => :state_inspection_rate)
+# merge the stateRates with the dialysis data
+dialysis = join(dialysis, stateRates, on = [:state, :year])
+```
+
+Creating the number of competitors in the same city is somewhat
+similar. Note that @grieco2017 use the number of competitors in the
+same HSA, which would be preferrable. However, this dataset does not
+contain information on HSAs. If you are feeling ambitious, you could
+try to find data linking city, state to HSA, and use that to calculate
+competitors in the same HSA. 
+
+```julia
+dialysis[:city] = uppercase.(dialysis[:city]) 
 comps = by(dialysis,[:city,:year],
            df -> mapreduce((x) -> ifelse(ismissing(x),0,1*(x>0)), +, df[:patient_months])
            )
@@ -154,10 +403,84 @@ dialysis = join(dialysis, comps, on = [:city,:year])
 
 ```
 
+## Problem 1: Summary statistics
 
-# Quality 
+Creata a table similar to Table 1 of @grieco2017. Comment on any
+notable differences. The following code will help you get started.
 
 ```julia
+using Statistics
+
+# at the very least, you will need to change this list
+vars = [:patient_years_rom, :labor, :hiring]
+
+# You shouldn't neeed to change this function, but you can if you want
+function summaryTable(df, vars;
+                      funcs=[mean, std, x->length(collect(x))],
+                      colnames=[:Variable, :Mean, :StDev, :N])
+  # In case you want to search for information about the syntax used here, 
+  # [XXX for XXX] is called a comprehension
+  # The ... is called the splat operator
+  DataFrame([vars [[f(skipmissing(df[v])) for v in vars] for f in funcs]...], colnames)  
+end
+summaryTable(dialysis, vars)
+```
+
+## Problem 2: exploratory figures
+
+Create some figures to explore the data. Try to
+be creative.  Are there any strange patterns or other obvious
+problems with the data?
+
+Here are some examples to get started. You may want to look at the
+StatPlots.jl, Plots.jl, or VegaLite.jl github pages for more examples.
+
+### Comparing output measures
+
+```julia
+using StatPlots , Plots
+dialysis[:patient_years] = dialysis[:patient_months]/12
+# missings will mess up corrplot
+vars = [:patient_years, :patient_years_hd, :patient_years_rom]
+inc = completecases(dialysis[vars])
+@df dialysis[inc,:] corrplot([:patient_years :patient_years_hd :patient_years_rom])
+```
+
+### Trends over time
+
+```julia
+Plots.gr()
+function yearPlot(var)
+  data = dialysis[completecases(dialysis[[:year, var]]),:]
+  scatter(data[:year], data[var], alpha=0.1, legend=:none,
+          markersize=3, markerstrokewidth=0.0)
+  yearmeans = by(data, :year,
+                 mean = var => x->mean(skipmissing(x)),
+                 q01  = var => x->quantile(skipmissing(x), 0.01),
+                 q10  = var => x->quantile(skipmissing(x), 0.1),
+                 q25  = var => x->quantile(skipmissing(x), 0.25),
+                 q50  = var => x->quantile(skipmissing(x), 0.50),
+                 q75  = var => x->quantile(skipmissing(x), 0.75),
+                 q90  = var => x->quantile(skipmissing(x), 0.9),
+                 q99  = var => x->quantile(skipmissing(x), 0.99))
+  @df yearmeans plot!(:year, :mean, colour = ^(:black), linewidth=4)
+  @df yearmeans plot!(:year, cols(3:ncol(yearmeans)),
+                      colour = ^(:red), alpha=0.3, legend=:none,
+                      xlabel="year", ylabel=String(var))
+end
+yearPlot(:labor)
+```
+The above plot shows a scatter of labor vs year. The black lines are
+average labor each year. The red lines are the 0.01, 0.1, 0.25, 0.5,
+0.75, 0.9, and 0.99 quantiles conditional on year.
+
+# Part II: estimating the model
+
+## Quality 
+
+```julia
+using FixedEffectModels
+
 dialysis[:idcat] = categorical(dialysis[:provfs])
 qreg = reg(dialysis, @model(pct_septic ~ days_since_inspection + patient_age +
                             pct_female + patient_esrd_years + pct_fistula + comorbidities +
@@ -169,9 +492,10 @@ mreg = reg(dialysis, @model(std_mortality ~ days_since_inspection + patient_age 
 dialysis[:mort_q] = -mreg.augmentdf[:residuals]
 ```
 
-# Estimation of $\alpha$
+## Estimation of $\alpha$
 
 ```julia
+# you may want to use patient_years_hd or patient_years_rom instead
 dialysis[:lpy] = log.(dialysis[:patient_months]./12)
 dialysis[:logL] = log.(dialysis[:labor])
 dialysis[:logK] = log.(dialysis[:stations])
@@ -206,7 +530,7 @@ df = data[1:2000,:];
 data[:Φ] = Φ
 ```
 
-# Estimating $\beta$
+## Estimating $\beta$
 
 ```julia
 (ωfunc, ηfunc) = errors_gm(:lpy, :logK, :logL, :quality, :Φ, :provfs, :year,
@@ -219,7 +543,7 @@ using Optim
 res = optimize(cue, [0.0, 0.0], [1.0, 1.0], [0.4, 0.2], Fminbox(LBFGS()), autodiff=:forward)
 
 using Plots, Distributions
-Plots.plotly()
+#Plots.gr()
 lb = -0.2
 ub = 1.0
 ntest = 100
