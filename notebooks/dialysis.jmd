@@ -169,12 +169,14 @@ The R script
 \href{https://bitbucket.org/paulschrimpf/econ565/src/master/assignments/production-R/dialysis/downloadDialysisData.R}{downloadDialysisData.R}
 downloads, combines, and cleans the data. dialysisdata.org
 has reorganized their website, and the data no longer seems to be
-available. Similar (perhaps identical) data appears to be available
+available. Similar (likely identical) data is available
 from
-[https://data.cms.gov/dialysis-facility-reports/archived](https://data.cms.gov/dialysis-facility-reports/archived),
-but I have not checked. Anyway, the result of the R script is the 
-`dialysisFacilityReports.rda` file contained in this git repository.
-This R data file contains most of the variables used by @grieco2017
+[https://data.cms.gov/browse?q=dialysis](https://data.cms.gov/browse?q=dialysis). It
+might be useful to look at the documentation included with any of the
+"Dialysis Facility Report Data for FY20XX" zip files. Anyway, the
+result of the R script is the `dialysisFacilityReports.rda` file
+contained in this git repository. This R data file contains most of
+the variables used by @grieco2017. 
 
 ```julia
 using DataFrames  # DataFrames.jl is a package for storing and
@@ -405,8 +407,9 @@ dialysis = join(dialysis, comps, on = [:city,:year])
 
 ## Problem 1: Summary statistics
 
-Creata a table similar to Table 1 of @grieco2017. Comment on any
-notable differences. The following code will help you get started.
+Creata a table (or multiple tables) similar to Tables 1-3 of
+@grieco2017. Comment on any notable differences. The following code
+will help you get started.
 
 ```julia
 using Statistics
@@ -476,29 +479,144 @@ average labor each year. The red lines are the 0.01, 0.1, 0.25, 0.5,
 
 # Part II: estimating the model
 
-## Quality 
+## Problem 3: Quality measures
+
+@grieco2017 use the residuals from regressing the infection rate on
+patient characteristics as a measure of quality. Since the infection
+rate is a noisy measure of quality, they instrument with the
+standardized mortality ratio as a second measure of quality. Medicare
+collects the data we are using in part to create the "Dialysis
+Facility Compare" website, which is meant to allow consumers to
+compare quality of dialysis facilities. Browsing around the [Dialysis
+Facility
+Compare](https://www.medicare.gov/dialysisfacilitycompare/#profile&pid=522543&pdist=2.0&loc=53129&lat=42.9388315&lng=-87.997164&sort=12%7CASC&dist=0&previouspage=results&profTab=2)
+or by looking at the first few pages of a [sample Dialysis Facility
+Report](https://data.cms.gov/Medicare/Sample-Dialysis-Facility-Report-for-Current-Year/82bq-h92z),
+you will see that there are a number of other variables that Medicare
+considers indicators of quality. Pick one of these (it may or may not
+be included in the extract of data I provided), and argue for or
+against using it instead of or in addition to the septic infection rate and
+standardized mortality ratio. 
+
+We can construct residuals from an OLS regression as follows:
+```julia
+"""
+    ols_residuals(data::AbstractDataFrame, y::Symbol,
+                  x::Array{Symbol,1}; intecept::Bool=true)
+
+This is a doc string. After executing this cell, if you type ?ols_residuals, you
+will see this text. 
+
+Calculate residuals from an OLS regression of data[y] on data[x]
+
+Inputs:
+ - `data` DataFrame containg y and x
+ - `y` Symbol specifying y variable
+ - `x` Symbol specifying x variables
+
+Output:
+ - Vector of residuals of length = nrow(data)
+"""
+function ols_residuals(data::DataFrame,  y::Symbol,
+                       x::Array{Symbol,1};
+                       # arguments following the 
+                       # are optional
+                       intercept::Bool=true  
+                       )
+  # The :: are type specifications. They could be left out, and this
+  # function would still work just fine. One of their purposes are to
+  # document what inputs this function expects, and throw useful error
+  # messages if someone tries calling the function on the wrong types.
+
+  inc = completecases(data[[y, x...]]) # deal with missing
+  Y = disallowmissing(data[y][inc])
+  if (intercept) 
+    X = [ones(sum(inc)) data[x][inc,:]]
+  else
+    X = data[x][inc,:]
+  end
+  X = disallowmissing(convert(Matrix, X))
+  
+  # you can type Greek and some other LaTeX characters by typing their LaTeX
+  # code followed by tab, e.g.  \beta<TAB> and \in<TAB>
+  β = X \ Y # β ∈ argmin_b || X*b - Y || 
+  ϵ = Y - X*β  
+  if (any(.!inc)) # add back in missings
+    resid = Array{Union{Missing,eltype(ϵ)},1}(undef, nrow(data))
+    resid .= missing
+    resid[inc] = ϵ
+    return(resid)
+  else # no missing, just return ϵ
+    return(ϵ)
+  end
+end
+q = -ols_residuals(dialysis, :pct_septic, [:days_since_inspection,
+                                           :patient_age,
+                                           :pct_female,
+                                           :patient_esrd_years,
+                                           :pct_fistula,
+                                           :comorbidities,
+                                           :hemoglobin]);
+```
+
+Of course, regression is common enough that there are already Julia
+packages for it. I included the `ols_residuals` only for pedagogical
+purposes. Whenever there exists a well-used package, it is (usually)
+better to use the package than try to write your own functions. Here's
+how to accomplish the same thing using FixedEffectModels.jl.
 
 ```julia
 using FixedEffectModels
 
 dialysis[:idcat] = categorical(dialysis[:provfs])
+# FixedEffectModels requires clustering and fixed effect variables to
+# be categorical
+
 qreg = reg(dialysis, @model(pct_septic ~ days_since_inspection + patient_age +
                             pct_female + patient_esrd_years + pct_fistula + comorbidities +
-                            hemoglobin, vcov=cluster(idcat)), save=true)
+                            hemoglobin, vcov=cluster(idcat)),
+           save=true) # saves residuals in augmentdf
 dialysis[:quality] = -qreg.augmentdf[:residuals]
-mreg = reg(dialysis, @model(std_mortality ~ days_since_inspection + patient_age +
-                            pct_female + patient_esrd_years + pct_fistula + comorbidities +
-                            hemoglobin, vcov=cluster(idcat)), save=true)
-dialysis[:mort_q] = -mreg.augmentdf[:residuals]
+
+# Let's test that these results are the same from ols_residuals
+println("Mean absolute difference = $(mean(skipmissing( abs.(q.- dialysis[:quality]) )))") 
+# using $(expr) in a string will insert the result of expr in the$
+# string 
+
+using Test
+@test all(skipmissing(q .≈ dialysis[:quality])) == true
 ```
+Testing is an important part of software development. The
+[Test.jl](https://docs.julialang.org/en/v1/stdlib/Test/index.html) 
+package provides help function for running tests. See [these notes from
+628](https://nbviewer.jupyter.org/github/ubcecon/ECON628_2018/blob/master/notebooks/testing.ipynb)
+for more information about testing. 
+
+## Problem 4: OLS and fixed effects estimates
+
+Reproduce columns 2,3, 5, and 6 of Table 5. The syntax for fixed
+effects regression is shown below:
+```julia
+# you may want to use patient_years_hd or patient_years_rom instead
+log_infmiss = x->ifelse(!ismissing(x) && x>0, log(x), missing) # -Inf confuses reg()
+dialysis[:lpy] = log_infmiss.(dialysis[:patient_months]./12)
+dialysis[:logL] = log_infmiss.(dialysis[:labor])
+dialysis[:logK] = log_infmiss.(dialysis[:stations])
+
+# you may want to restrict sample to match sample that can be used in model estimates 
+reg(dialysis, @model(lpy ~ quality + logK + logL, fe = idcat, vcov =
+                     cluster(idcat)))
+```
+Be sure to add the other columns. If you'd like, you could use
+[RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl)
+to produce tables that look a lot like the ones in the paper. 
 
 ## Estimation of $\alpha$
 
+TO BE CONTINUED
+
 ```julia
-# you may want to use patient_years_hd or patient_years_rom instead
-dialysis[:lpy] = log.(dialysis[:patient_months]./12)
-dialysis[:logL] = log.(dialysis[:labor])
-dialysis[:logK] = log.(dialysis[:stations])
+# create indicator for observations usable in estimation of α
 inc1 = ((dialysis[:patient_months] .> 0) .& (dialysis[:labor] .> 0) .&
            (dialysis[:stations] .> 0) .&
            .!ismissing.(dialysis[:quality]) .&
@@ -507,9 +625,22 @@ inc1 = ((dialysis[:patient_months] .> 0) .& (dialysis[:labor] .> 0) .&
            (dialysis[:hiring].!=0));
 inc1[ismissing.(inc1)] .= false;
 dialysis[:inc1] = inc1;
-inc1 = findall(inc1);
-reg(dialysis[inc1,:], @model(lpy ~ quality + logL + logK, vcov=cluster(idcat)))
+dialysis[:lsmr] = log.(dialysis[:std_mortality] .+ .01)
+@time (α, Φ) = partiallinearIV(:lpy, :quality, :lsmr,
+                               [:hiring, :logL, :logK, :state_inspection_rate, :competitors],
+                               dialysis[findall(dialysis[:inc1]),:];
+                               npregress=(xp, xd, yd)->polyreg(xp,xd,yd,degree=1)
+                               ) 
 
+dialysis[:Φ] = similar(dialysis[:lpy])
+dialysis[:Φ] .= missing
+dialysis[:Φ][findall(dialysis[:inc1])] = Φ
+```
+
+## Estimating $\beta$
+
+```julia
+# indicator for observations usable in estimation of β
 dialysis[:inclag] = panellag(:inc1, dialysis, :provfs, :year, 1);
 dialysis[:inc2] = (dialysis[:inclag] .&
                    (dialysis[:stations].>0) .&
@@ -518,29 +649,14 @@ dialysis[:inc2] = (dialysis[:inclag] .&
                    .!ismissing.(dialysis[:quality]));
 dialysis[:inc2][ismissing.(dialysis[:inc2])] .= false;
 
-data = dialysis[findall(dialysis[:inc2]),:];
-data[:lsmr] = log.(data[:std_mortality] .+ .01)
-df = data[1:2000,:];
-@time (α, Φ) = partiallinearIV(:lpy, :quality, :lsmr,
-                               [:hiring, :logL, :logK, :state_inspection_rate, :competitors],
-                               data;
-                               npregress=(xp, xd,yd)->
-                               polyreg(xp,xd,yd,degree=1) )
-
-data[:Φ] = Φ
-```
-
-## Estimating $\beta$
-
-```julia
 (ωfunc, ηfunc) = errors_gm(:lpy, :logK, :logL, :quality, :Φ, :provfs, :year,
-                           data, α; degree=1)
+                           dialysis, α; degree=1)
 
-(obj, momenti, cue) = objective_gm([:logK, :logL], data, ηfunc)
-cue([0.0,0.0])
+(obj, momenti, cue) = objective_gm([:logK, :logL], dialysis, ηfunc)
+#cue([0.0,0.0])
 
 using Optim
-res = optimize(cue, [0.0, 0.0], [1.0, 1.0], [0.4, 0.2], Fminbox(LBFGS()), autodiff=:forward)
+#res = optimize(cue, [0.0, 0.0], [1.0, 1.0], [0.4, 0.2], Fminbox(LBFGS()), autodiff=:forward)
 
 using Plots, Distributions
 #Plots.gr()

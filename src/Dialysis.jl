@@ -170,18 +170,24 @@ q = h(z,controls) + u
 It assumes that E[ϵ|z, controls] = 0. 
 
 Uses orthogonal (wrt Φ and other nuisance functions) moments for
-estimating α. See Chernozhukov, Chetverikov, Demirer, Duflo, Hansen,
-Newey, and Robins (2018) for information on orthogonal moments. 
+estimating α. In particular, it uses 
+
+0 = E[(y - E[y|controls] - α(q - E[q|controls]))*(E[q|z,controls] - E[q|controls])]
+
+See section 4.2 (in particular footnote 8) of Chernozhukov,
+Chetverikov, Demirer, Duflo, Hansen, Newey, and Robins (2018) for more
+information. 
+
 
 Inputs:
 - `y` symbol specificying y variable
 - `q`
 - `z`
-- `controls` list of control variables entering h
+- `controls` list of control variables entering Φ
 - `data` DataFrame where all variables are found
 - `npregress` function for estimating E[w|x] nonparametrically. Used
-   to partial out E[y|controls], E[q|z,controls], and E[z|controls]. Syntax
-   should be the same as `locallinear`
+   to partial out E[y|controls], E[q|z,controls], and E[q|controls]. Syntax
+   should be the same as `locallinear` or `polyreg`
 
 Output:
 - `α` estimate of α
@@ -233,15 +239,16 @@ function errors_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
   function Ω(β::AbstractVector)
     data[Φ] - data[k]*β[1] - data[l] * β[2];
   end
+  df = deepcopy(data)
   function Η(β::AbstractVector)
-    data[:ω] = Ω(β);
-    data[:ωlag] = panellag(:ω, data, id, t);
-    data[:ytilde] = data[y] - α*data[q] -data[k]*β[1] - data[l]*β[2];
-    inc = completecases(data[[:ωlag, :ytilde]])
-    X = reshape(disallowmissing(data[:ωlag][inc]), sum(inc), 1)
-    Y = reshape(disallowmissing(data[:ytilde][inc]), sum(inc),1)
+    df[:ω] = Ω(β);
+    df[:ωlag] = panellag(:ω, df, id, t);
+    df[:ytilde] = df[y] - α*df[q] -df[k]*β[1] - df[l]*β[2];
+    inc = completecases(df[[:ωlag, :ytilde]])
+    X = reshape(disallowmissing(df[:ωlag][inc]), sum(inc), 1)
+    Y = reshape(disallowmissing(df[:ytilde][inc]), sum(inc),1)
     ηi = Y - npregress(X,X,Y, degree=degree)
-    η = Array{Union{Missing, eltype(ηi)}, 1}(undef, nrow(data))
+    η = Array{Union{Missing, eltype(ηi)}, 1}(undef, nrow(df))
     η .= missing
     η[inc] = ηi
     return(η)
