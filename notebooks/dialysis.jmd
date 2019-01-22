@@ -613,7 +613,77 @@ to produce tables that look a lot like the ones in the paper.
 
 ## Estimation of $\alpha$
 
-TO BE CONTINUED
+As discussed in section 5 of @grieco2017, the coefficient on quality,
+$\alpha$, is estimated from 
+$$
+y_{jt} = \alpha q_{jt} + \Phi(\underbrace{h_{jt}, k_{jt}, l_{jt}, x_{jt}}_{w_{jt}}) +
+\epsilon_{jt}
+$$
+with a second noisy measure of quality, $z_{jt}$, used to instrument
+for $\alpha$. To estimate $\alpha$, first the exogenous variables,
+$w$, can be partialed out to give:
+$$
+y_{jt} - \Er[y_{jt} | w_{jt} ] = \alpha (q_{jt} - \Er[q_{jt}|w_{jt}]) +
+\epsilon_{jt}
+$$
+where we used the assumption that $\Er[\epsilon_{jt} | w_{jt} ] = 0$
+and the fact that $\Er[\Phi(w) | w] = \Phi(w)$. Under the assumption
+that $\Er[\epsilon| z, w] = 0$, we can estimate $\alpha$ based on the
+moment condition:
+$$
+\begin{align*}
+0 = & \Er[\epsilon f(z,w) ] \\
+0 = & \Er\left[ \left(y_{jt} - \Er[y_{jt} | w_{jt} ] - \alpha
+(q_{jt} - \Er[q_{jt}|w_{jt}])\right) f(z_{jt},w_{jt}) \right]
+\end{align*}
+$$
+If $\var(\epsilon|z,w)$ is constant, the efficient choice of $f(z,w)$
+is 
+$$
+Er[\frac{\partial \epsilon}{\alpha} |z, w ] = \Er[q| z, w] - \Er[q|w]
+$$
+To estimate $\alpha$, we simply replace these conditional expectations with
+regression estimates, and replace the unconditional expectation with a
+sample average. Let $\hat{\Er}[y|w]$ denote a nonparmetric estimate of
+the regression of $y$ on $w$. Then, 
+$$
+\hat{\alpha} = \frac{\sum_{j,t} (y_{jt} -
+\hat{E}[y|w_{jt}])(\hat{E}[q|z_{jt},w_{jt}] - \hat{E}[q|w_{jt}])} 
+{\sum_{j,t} (q_{jt} - \hat{E}[q|w_{jt}])(\hat{E}[q|z_{jt},w_{jt}] - \hat{E}[q|w_{jt}])} 
+$$
+The function `partiallinearIV` in Dialysis.jl will estimate this
+model. Also included are two methods for estimating
+$\hat{E}[y|w]$. `polyreg` estimates a polynomial series regression,
+that is it regresses $y$ on a polynomial of degree $d$ in $w$. To
+allow the regression to approximate any function, the degree must
+increase with the sample size, but to control variance the degree must
+not increase too quickly. We will not worry too much about the choice
+of degree here. 
+
+An alternative method (and what @grieco2017 used) is
+local linear regression. To estimate $\hat{E}[y|x_{jt}]$, local linear
+regression estimates a linear regression of $y$ on $x$, but weights
+observations by how close $x_{it}$ is to $x_{jt}$. That is, 
+$$
+\hat{E}[y|x_{jt}] = x_{jt} (\argmin_\beta \sum_{i,t} (y_{it} - x_{it})^2 k((x_{it} - x_{jt})/h_n))
+$$
+where $k()$ is some function with its maximum at 0 (and has some other
+properties), like $k(x) \propto e^{-x^2}$. The bandwidth, $h_n$,
+determines how much weight to place on observations close to vs far
+from $x_{jt}$. Similar to the degree in polynomial regression, the
+bandwidth must decrease toward 0 with sample size allow local linear
+regression to approximate any function, but to control variance the
+bandwidth must not decrease too quickly. We will not worry too much
+about the choice of bandwidth. Anyway, the function `locallinear` in
+Dialysis.jl estimates a local linear regression. 
+
+## Problem 5: $\alpha$
+
+Estimate $\alpha$ using the following code. You may want to modify
+some aspects of it and/or report estimates of $\alpha$ for different
+choices of instrument, nonparametric estimation method, degree or
+bandwidth. Compare your estimate(s) of $\alpha$ with the ones in
+Tables 5 and 6 of @grieco2017.
 
 ```julia
 # create indicator for observations usable in estimation of α
@@ -625,19 +695,151 @@ inc1 = ((dialysis[:patient_months] .> 0) .& (dialysis[:labor] .> 0) .&
            (dialysis[:hiring].!=0));
 inc1[ismissing.(inc1)] .= false;
 dialysis[:inc1] = inc1;
+
 dialysis[:lsmr] = log.(dialysis[:std_mortality] .+ .01)
-@time (α, Φ) = partiallinearIV(:lpy, :quality, :lsmr,
-                               [:hiring, :logL, :logK, :state_inspection_rate, :competitors],
-                               dialysis[findall(dialysis[:inc1]),:];
-                               npregress=(xp, xd, yd)->polyreg(xp,xd,yd,degree=1)
-                               ) 
+# As degree → ∞ and/or bandwidth → 0, whether we use :std_mortality or
+# some transformation as the instrument, should not matter. However,
+# for fixed degree or bandwidth it will have some (hopefully small)
+# impact. 
+
+(α, Φ) = partiallinearIV(:lpy,  # y 
+                         :quality, # q
+                         :lsmr,   # z
+                         [:hiring, :logL, :logK,
+                         :state_inspection_rate, :competitors], # w
+                         dialysis[findall(dialysis[:inc1]),:];
+                         npregress=(xp, xd,yd)->polyreg(xp,xd,yd,degree=1)
+                         # You may want to change the degree here
+                         #
+                         # You could also change `polyreg`  to
+                         # `locallinear` and `degree` to
+                         # `bandwidthmultiplier`
+                         #
+                         # locallinear will likely take some time to
+                         # compute (≈350 seconds on my computer)
+                         ) 
 
 dialysis[:Φ] = similar(dialysis[:lpy])
 dialysis[:Φ] .= missing
 dialysis[:Φ][findall(dialysis[:inc1])] = Φ
+α
 ```
 
+## Brief introduction to GMM
+
+The coefficients on labor and capital are estimated by GMM. The idea
+of GMM is as follows. We have a model that implies 
+$$
+\Er[c(y,x;\theta) | z ] = 0
+$$
+where $y$, $x$, and $z$ are observed variables. $c(y,x;\theta)$ is
+some known function of the data and some parameters we want to
+estimate, $\theta$. Often, $c(y,x;\theta)$ are the residuals from some
+equation. For example, for linear IV, we'd have
+$$ c(y,x;\theta) = y - x\theta $$ 
+The conditional moment restriction above implies that
+$$
+\Er[c(y,x;\theta)f(z) ] = 0
+$$
+for any function $f()$. We can then estimate $\theta$ by replacing the
+population expectation with a sample average and finding
+$\hat{\theta}$ such that
+$$
+\En[c(y,x;\hat{\theta})f(z) ] \approx 0
+$$
+The dimension of $f(z)$ should be greater than or equal to the
+dimension of $\theta$, so we have at least as many equations as
+unknowns. We find this $\hat{\theta}$ by minimizing a quadratic form
+of these equations. That is,
+$$
+\hat{\theta} = \argmin_\theta \En[g_i(\theta)] W_n \En[g_i(\theta)]'
+$$
+were $g_i(\theta) = c(y_i, x_i;\theta)f(z_i)$, and $W_n$ is some
+positive definite weighting matrix. 
+
+
+## Problem 6: OLS by GMM
+
+As practice with GMM, use it to estimate a simple regression model, 
+$$
+y = x\beta + \epsilon
+$$
+assuming $\Er[\epsilon|x] = 0$. Test your code on simulated data. The
+following will help you get started.
+
+```julia
+function sim_ols(n; β = ones(3))
+  x = randn(n, length(β))
+  ϵ = randn(n)
+  y = x*β + ϵ
+  return(x,y)
+end
+β = ones(2)
+(x, y) = sim_ols(100; β=β)
+βols = (x'*x) \ (x'*y)
+
+function gmm_objective(β)
+  gi = (y - x*β) .* x
+  Egi = mean(gi, dims=1)
+  error("This is incomplete; you must finish it")
+
+  # It is is likely that the code you will write will return a 1 x 1,
+  # 2 dimensional array. For compatibility with Optim, you need to
+  # return a scalar. If foo is a 1x1 array, write `foo[1]` to return a scalar instead of
+  # 1x1 array
+end
+
+# minimizer gmm_objective
+using Optim # github page : https://github.com/JuliaNLSolvers/Optim.jl
+            # docs : http://julianlsolvers.github.io/Optim.jl/stable/
+res = optimize(gmm_objective,
+               zeros(size(β)), # initial value
+               BFGS(), # algorithm, see http://julianlsolvers.github.io/Optim.jl/stable/
+               autodiff=:forward)
+βgmm = res.minimizer
+@test βgmm ≈ βols
+res
+```
+
+                                                 
 ## Estimating $\beta$
+
+The model
+implies that 
+$$
+\omega_{jt} = \Phi(w_{jt}) - \beta_k k_{jt} - \beta_l l_{jt} 
+$$ {#eq:omega}
+and 
+$$
+y_{jt} - \alpha q_{jt} - \beta_k k_{jt} - \beta_l l_{jt} =
+g(\omega_{jt-1}) + \eta_{jt} 
+$$ {#eq:eta}
+The timing and exogeneity assumptions imply that 
+$$
+\Er[\eta_{jt} | k_{jt}, l_{jt}, w_{jt-1}]
+$$
+Given a value of $\beta$, and our above estimates of $\Phi$ and
+$\alpha$, we can compute $\omega$ from @eq:omega, and then estimate
+$g()$ and $\eta$ by a nonparametric regression of
+$y_{jt} - \alpha q_{jt} - \beta_k k_{jt} - \beta_l l_{jt}$ on
+$\omega_{jt-1}$. $\beta$ can then be estimated by finding the value of
+$\beta$ that comes closest to satisfying the moment condition
+$$
+\Er[\eta(\beta)_jt k_jt] = 0 \text{ and } \Er[\eta(\beta)_{jt} l_{jt}]
+= 0
+$$
+To do this, we minimize 
+$$
+Q_n(\beta) = \left( \frac{1}{N} \sum_{j,t} \eta(\beta)_{jt} (k_{jt}, l_jt) \right) W_n 
+\left( \frac{1}{N} \sum_{j,t} \eta(\beta)_{jt} (k_{jt}, l_jt) \right)'
+$$
+
+
+## Problem 7: estimate $\beta$
+
+Write the body of the $Q_n(\beta)$ function below. Use it to estimate
+$\beta$. Compare your results with those of @grieco2017. Optionally,
+explore robustness of your results to changes in the specification. 
 
 ```julia
 # indicator for observations usable in estimation of β
@@ -651,15 +853,37 @@ dialysis[:inc2][ismissing.(dialysis[:inc2])] .= false;
 
 (ωfunc, ηfunc) = errors_gm(:lpy, :logK, :logL, :quality, :Φ, :provfs, :year,
                            dialysis, α; degree=1)
-
-(obj, momenti, cue) = objective_gm([:logK, :logL], dialysis, ηfunc)
-#cue([0.0,0.0])
+function Qn(β)
+  η = ηfunc(β)
+  error("You must write the body of this function")
+end
 
 using Optim
-#res = optimize(cue, [0.0, 0.0], [1.0, 1.0], [0.4, 0.2], Fminbox(LBFGS()), autodiff=:forward)
+res = optimize(Qn,    # objective
+               [0.0, 0.0], # lower bounds, should not be needed, but
+                           # may help numerical performance 
+               [1.0, 1.0], # upper bounds 
+               [0.4, 0.2], # initial value               
+               Fminbox(BFGS()),  # algorithm
+               autodiff=:forward)
+β = res.minimizer
+@show β
 
+res
+
+```
+
+## Inference
+
+MAYBE TO BE CONTINUED. 
+
+See my notes from 628 on [extremum estimation](http://faculty.arts.ubc.ca/pschrimpf/628/extremumEstimation.html)
+and on
+[bootstrap](http://faculty.arts.ubc.ca/pschrimpf/628/bootstrap.html).
+
+```julia
+(obj, momenti, cue) = objective_gm([:logK, :logL], dialysis, ηfunc)
 using Plots, Distributions
-#Plots.gr()
 lb = -0.2
 ub = 1.0
 ntest = 100
@@ -677,4 +901,6 @@ b2 = copy(b1)
 fig=contour!(b1,b2,(a,b)->pfunc([a,b]),
              levels = [0.75, 0.9, 0.95, 0.99],
              contour_labels=true, legend=false)
+display(fig)
+
 ```
