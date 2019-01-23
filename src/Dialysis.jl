@@ -231,6 +231,25 @@ end
 
 Returns functions that given β calculate ω(β) and η(β).
 
+Inputs:
+ - `y` Symbol for y variable in data
+ - `k` Symbol for k variable in data
+ - `l` Symbol for l variable in data
+ - `q` Symbol for q variable in data
+ - `Φ` Symbol for Φ variable in data
+ - `id`  Symbol for id variable in data
+ - `t` Symbol for t variable in data
+ - `data` DataFrame containing variables
+ - `α` estimate of α
+
+Output: 
+ - ωfunc(β) computes ω given β for the `data` and α passed in as
+   input. `length(ωfunc(β)) == nrow(data)` ωfunc(β) will contain missings
+   if the data does.
+ - ηfunc(β) computes η fiven β. for the `data` and α passed in as
+   input. `length(ηfunc(β)) == nrow(data)` ηfunc(β) will contain
+   missings.
+
 """
 function errors_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
                    Φ::Symbol, id::Symbol, t::Symbol, data::DataFrame,
@@ -259,6 +278,7 @@ end
 """
     objective_gm(k::Symbol, l::Symbol, data::DataFrame,
                  ηfunc::Function; W=I)
+
 
 
 """

@@ -166,8 +166,8 @@ Services (CMS). However, there are some differences. Most notably,
 this data covers 2006-2014, instead of 2004-2008 as in @grieco2017 .
 
 The R script
-\href{https://bitbucket.org/paulschrimpf/econ565/src/master/assignments/production-R/dialysis/downloadDialysisData.R}{downloadDialysisData.R}
-downloads, combines, and cleans the data. dialysisdata.org
+[https://bitbucket.org/paulschrimpf/econ565/src/master/assignments/production-R/dialysis/downloadDialysisData.R](downloadDialysisData.R)
+downloads, combines, and cleans the data. Unfortunately, dialysisdata.org
 has reorganized their website, and the data no longer seems to be
 available. Similar (likely identical) data is available
 from
@@ -244,7 +244,7 @@ days_since_inspection | days since last inspection
 The raw data contains information on many variables in each of the
 previous 4 years. Staffing variables with no suffix are staff as of
 January 31, year as reported in year + 1.  Staffing variables with
-``.l1'' are staff as of January 31, year - 1 as reported in year +
+".l1" are staff as of January 31, year - 1 as reported in year +
 1. If there were no reporting errors, the .l1 variables would equal
 the lag of the ones without .l1. However, you might find that this is
 not the case.
@@ -255,7 +255,7 @@ Y-4. However, for some variables and survey years, only information in
 years Y-2, Y-3, Y-4 is included. For such variables, at year Y-1, I
 use the value reported in survey year Y if it is available. If not, I
 use the value reported in survey year Y+1. The variables ending with
-``.p3'' instead use the convention to use use Y-2 values if available
+".p3" instead use the convention to use use Y-2 values if available
 and the Y-1 ones if not. Again, if there were no reporting errors the
 variables with and without .p3 would be the same. 
 
@@ -385,7 +385,7 @@ stateRates = by(dialysis, [:state, :year],
 # rename the variable in the stateRates DataFrame
 rename!(stateRates, :x1 => :state_inspection_rate)
 # merge the stateRates with the dialysis data
-dialysis = join(dialysis, stateRates, on = [:state, :year])
+dialysis = join(dialysis, stateRates, on = [:state, :year]);
 ```
 
 Creating the number of competitors in the same city is somewhat
@@ -401,7 +401,7 @@ comps = by(dialysis,[:city,:year],
            df -> mapreduce((x) -> ifelse(ismissing(x),0,1*(x>0)), +, df[:patient_months])
            )
 rename!(comps, :x1 => :competitors)
-dialysis = join(dialysis, comps, on = [:city,:year])
+dialysis = join(dialysis, comps, on = [:city,:year]);
 
 ```
 
@@ -442,6 +442,7 @@ StatPlots.jl, Plots.jl, or VegaLite.jl github pages for more examples.
 
 ```julia
 using StatPlots , Plots
+Plots.gr(fmt=:png)
 dialysis[:patient_years] = dialysis[:patient_months]/12
 # missings will mess up corrplot
 vars = [:patient_years, :patient_years_hd, :patient_years_rom]
@@ -452,7 +453,6 @@ inc = completecases(dialysis[vars])
 ### Trends over time
 
 ```julia
-Plots.gr()
 function yearPlot(var)
   data = dialysis[completecases(dialysis[[:year, var]]),:]
   scatter(data[:year], data[var], alpha=0.1, legend=:none,
@@ -637,10 +637,10 @@ $$
 (q_{jt} - \Er[q_{jt}|w_{jt}])\right) f(z_{jt},w_{jt}) \right]
 \end{align*}
 $$
-If $\var(\epsilon|z,w)$ is constant, the efficient choice of $f(z,w)$
+If $Var(\epsilon|z,w)$ is constant, the efficient choice of $f(z,w)$
 is 
 $$
-Er[\frac{\partial \epsilon}{\alpha} |z, w ] = \Er[q| z, w] - \Er[q|w]
+\Er[\frac{\partial \epsilon}{\partial \alpha} |z, w ] = \Er[q| z, w] - \Er[q|w]
 $$
 To estimate $\alpha$, we simply replace these conditional expectations with
 regression estimates, and replace the unconditional expectation with a
@@ -665,9 +665,14 @@ local linear regression. To estimate $\hat{E}[y|x_{jt}]$, local linear
 regression estimates a linear regression of $y$ on $x$, but weights
 observations by how close $x_{it}$ is to $x_{jt}$. That is, 
 $$
-\hat{E}[y|x_{jt}] = x_{jt} (\argmin_\beta \sum_{i,t} (y_{it} - x_{it})^2 k((x_{it} - x_{jt})/h_n))
+\hat{E}[y|x_{jt}] = x_{jt} \hat{\beta}(x_jt) 
 $$
-where $k()$ is some function with its maximum at 0 (and has some other
+where 
+$$
+\hat{\beta}(x_jt) = \argmin_\beta \sum_{i,t} (y_{it} -
+x_{it}\beta)^2 k((x_{it} - x_{jt})/h_n)
+$$
+Here $k()$ is some function with its maximum at 0 (and has some other
 properties), like $k(x) \propto e^{-x^2}$. The bandwidth, $h_n$,
 determines how much weight to place on observations close to vs far
 from $x_{jt}$. Similar to the degree in polynomial regression, the
@@ -698,7 +703,7 @@ dialysis[:inc1] = inc1;
 
 dialysis[:lsmr] = log.(dialysis[:std_mortality] .+ .01)
 # As degree → ∞ and/or bandwidth → 0, whether we use :std_mortality or
-# some transformation as the instrument, should not matter. However,
+# some transformation as the instrument should not matter. However,
 # for fixed degree or bandwidth it will have some (hopefully small)
 # impact. 
 
@@ -791,12 +796,17 @@ end
 
 # minimizer gmm_objective
 using Optim # github page : https://github.com/JuliaNLSolvers/Optim.jl
-            # docs : http://julianlsolvers.github.io/Optim.jl/stable/
-res = optimize(gmm_objective,
-               zeros(size(β)), # initial value
-               BFGS(), # algorithm, see http://julianlsolvers.github.io/Optim.jl/stable/
-               autodiff=:forward)
-βgmm = res.minimizer
+# docs : http://julianlsolvers.github.io/Optim.jl/stable/
+try 
+  res = optimize(gmm_objective,
+                 zeros(size(β)), # initial value
+                 BFGS(), # algorithm, see http://julianlsolvers.github.io/Optim.jl/stable/
+                 autodiff=:forward)
+  βgmm = res.minimizer
+catch err
+  @info err
+  βgmm = zeros(size(β))
+end
 @test βgmm ≈ βols
 res
 ```
@@ -825,13 +835,13 @@ $y_{jt} - \alpha q_{jt} - \beta_k k_{jt} - \beta_l l_{jt}$ on
 $\omega_{jt-1}$. $\beta$ can then be estimated by finding the value of
 $\beta$ that comes closest to satisfying the moment condition
 $$
-\Er[\eta(\beta)_jt k_jt] = 0 \text{ and } \Er[\eta(\beta)_{jt} l_{jt}]
+\Er[\eta(\beta)_{jt} k_{jt}] = 0 \text{ and } \Er[\eta(\beta)_{jt} l_{jt}]
 = 0
 $$
 To do this, we minimize 
 $$
-Q_n(\beta) = \left( \frac{1}{N} \sum_{j,t} \eta(\beta)_{jt} (k_{jt}, l_jt) \right) W_n 
-\left( \frac{1}{N} \sum_{j,t} \eta(\beta)_{jt} (k_{jt}, l_jt) \right)'
+Q_n(\beta) = \left( \frac{1}{N} \sum_{j,t} \eta(\beta)_{jt} (k_{jt}, l_{jt}) \right) W_n 
+\left( \frac{1}{N} \sum_{j,t} \eta(\beta)_{jt} (k_{jt}, l_{jt}) \right)'
 $$
 
 
@@ -859,16 +869,21 @@ function Qn(β)
 end
 
 using Optim
-res = optimize(Qn,    # objective
-               [0.0, 0.0], # lower bounds, should not be needed, but
-                           # may help numerical performance 
-               [1.0, 1.0], # upper bounds 
-               [0.4, 0.2], # initial value               
-               Fminbox(BFGS()),  # algorithm
-               autodiff=:forward)
-β = res.minimizer
-@show β
-
+try 
+  res = optimize(Qn,    # objective
+                 [0.0, 0.0], # lower bounds, should not be needed, but
+                 # may help numerical performance 
+                 [1.0, 1.0], # upper bounds 
+                 [0.4, 0.2], # initial value               
+                 Fminbox(BFGS()),  # algorithm
+                 autodiff=:forward)
+  β = res.minimizer
+  @show β
+catch err
+  @info err
+  res = nothing
+  β = nothing
+end
 res
 
 ```
