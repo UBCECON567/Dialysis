@@ -4,6 +4,7 @@ subtitle    :
 author      : Paul Schrimpf
 date        : `j using Dates; print(Dates.today())`
 bibliography: "dialysis.bib"
+link-citations: true
 ---
 
 <a rel="license"
@@ -74,7 +75,7 @@ the page or typing ctrl and enter together.
 ## Julia resources
 
 This assignment will try to explain aspects of Julia as
-needed. However, it at some point you feel lost, you may want to
+needed. However, if at some point you feel lost, you may want to
 consult some of the following resources. Reading the first few
 sections of either QuantEcon or Think Julia is recommended.
 
