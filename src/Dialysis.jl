@@ -44,13 +44,13 @@ function panellag(x::Symbol, data::AbstractDataFrame, id::Symbol, t::Symbol,
     p = nothing
     df = data
   end
-  idlag= ShiftedArrays.lag(df[id], lags)
-  tlag = ShiftedArrays.lag(df[t], lags)
-  xlag = ShiftedArrays.lag(df[x], lags)
+  idlag= ShiftedArrays.lag(df[!,id], lags)
+  tlag = ShiftedArrays.lag(df[!,t], lags)
+  xlag = ShiftedArrays.lag(df[!,x], lags)
   xlag = copy(xlag)
   xlag[ (typeof.(tlag).==Missing) .|
-        (tlag .!= df[t].-lags) .|
-        (idlag .!= df[id]) ] .= missing
+        (tlag .!= df[!,t].-lags) .|
+        (idlag .!= df[!,id]) ] .= missing
   if (p == nothing)
     return(xlag)
   else
@@ -227,12 +227,12 @@ function partiallinear(y::Symbol, x::Array{Symbol, 1},
   Resid = YX - fits
   df = DataFrame(Resid, [y, x...])
   if (clustervar==Symbol())
-    est=reg(df, @model($(y) ~ $(Meta.parse(reduce((a,b) -> "$a + $b",
-                                                  x))) ))
+    est=reg(df, @eval @formula($(y) ~ $(Meta.parse(reduce((a,b) -> "$a + $b",
+                                                          x))) ))
   else
     df[clustervar] = data[clustervar][inc]
-    est=reg(df, @model($(y) ~ $(Meta.parse(reduce((a,b) -> "$a + $b", x)))
-                       , vcov=cluster($(clustervar)) ))
+    est=reg(df, @eval @formula($(y) ~ $(Meta.parse(reduce((a,b) -> "$a + $b", x)))
+                               , vcov=cluster($(clustervar)) ))
   end
   return(est)
 end
@@ -291,11 +291,11 @@ function partiallinearIV(y::Symbol, q::Symbol, z::Array{Symbol,1},
                          parts=false)
   # drop missing observations
   vars = [y, q, z..., controls...]
-  inc = completecases(data[vars])
-  Y = disallowmissing(data[y][inc])
-  Q = disallowmissing(data[q][inc])
-  Z = disallowmissing(convert(Matrix, data[z][inc,:]))
-  X = disallowmissing(convert(Matrix, data[controls][inc,:]))
+  inc = completecases(data[:,vars])
+  Y = disallowmissing(data[inc,y])
+  Q = disallowmissing(data[inc,q])
+  Z = disallowmissing(convert(Matrix, data[inc,z]))
+  X = disallowmissing(convert(Matrix, data[inc,controls]))
   XZ = hcat(X,Z)
   qhat = npregress(XZ,XZ,reshape(Q,length(Q),1))
   fits = npregress(X,X,hcat(Y,qhat))
@@ -304,7 +304,7 @@ function partiallinearIV(y::Symbol, q::Symbol, z::Array{Symbol,1},
   ez = qhat - fits[:,2]  
   α = (ey'*ez)/(eq'*ez)
   df = DataFrame([ey,eq,vec(ez)], [:y, :q, :z])
-  est = reg(df, @model(y ~ (q ~ z)))
+  est = reg(df, @formula(y ~ (q ~ z)))
   #Φi = npregress(X, X, reshape(Y - α*Q, length(Y),1))
   Φi = fits[:,1] - α*fits[:,2]
   
@@ -363,7 +363,7 @@ Output:
  - ωfunc(β) computes ω given β for the `data` and α passed in as
    input. `length(ωfunc(β)) == nrow(data)` ωfunc(β) will contain missings
    if the data does.
- - ηfunc(β) computes η fiven β. for the `data` and α passed in as
+ - ηfunc(β) computes η given β. for the `data` and α passed in as
    input. `length(ηfunc(β)) == nrow(data)` ηfunc(β) will contain
    missings.
 

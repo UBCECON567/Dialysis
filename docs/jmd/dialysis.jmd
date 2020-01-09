@@ -97,11 +97,11 @@ sections of either QuantEcon or Think Julia is recommended.
   
 - Documentation for core Julia can be found at
   [https://docs.julialang.org/en/v1/](https://docs.julialang.org/en/v1/). All
-  Julia packages also have a github page. Many of these will include
+  Julia packages also have a github page. Many of these include
   package specific documentation.
 
 - [Notes on Julia from ECON
-  628](https://github.com/ubcecon/ECON628_2018) much of this is part
+  622](https://github.com/ubcecon/ECON622_2019) much of this is part
   of QuantEcon, but not all
 
 - [The Julia Express](https://github.com/bkamins/The-Julia-Express)
@@ -130,10 +130,16 @@ Cells" menu option produces the output you want). Don't worry about
 understanding the details of the code in this section.
 
 ```julia
+using NeuralNetworkEconomics
+docdir = joinpath(dirname(Base.pathof(NeuralNetworkEconomics)), "..","docs")
+
+using Pkg
+Pkg.activate(docdir)
+Pkg.instantiate()
+
 using Pkg # loads the Pkg package 
 Pkg.activate("..") # loads environment specified in "../Project.toml"
-                   # This contains a list of packages and their
-                   # versions
+                   # This contains a list of packages 
 Pkg.instantiate()  # installs all packages in the environment
 ```
 
@@ -141,9 +147,8 @@ Some useful functions for this assignment are in
 `../src/Dialysis.jl`. We load those functions now. 
 
 ```julia
-using Revise
-if (!("../src" ∈ LOAD_PATH))
-  push!(LOAD_PATH, "../src") # so that `using` knows where to find Dialysis.jl
+if (!("../../src" ∈ LOAD_PATH))
+  push!(LOAD_PATH, "../../src") # so that `using` knows where to find Dialysis.jl
 end
 using Dialysis
 ```
@@ -315,17 +320,17 @@ sort!(dialysis, (:provfs, :year))
 # DataFrame must be Symbols, so they all start with :
 
 # we can access a single column of DataFrame by writing
-# dialysis[:stations] . This will be a 1 dimensional Array containing
+# dialysis[!,:stations] . This will be a 1 dimensional Array containing
 # of length equal to the number of rows in the dialysis DataFrame
 
 # panellag is a function defined in Dialysis.jl it creates lags and
 # leads of variables in panel data. It will insert missing values
 # where appropriate.
 
-# putting dialysis[:invest] on the left will create a new column in
+# putting dialysis[!,:invest] on the left will create a new column in
 # the dialysis dataframe
-dialysis[:invest] = panellag(:stations, dialysis, :provfs, :year, -1) -
-  dialysis[:stations]; # ; prevents the notebook from printing the
+dialysis[!,:invest] = panellag(:stations, dialysis, :provfs, :year, -1) -
+  dialysis[!,:stations]; # ; prevents the notebook from printing the
 # output of the last command. Otherwise, notebooks display the output
 # of the last command in each cell.
 ```
@@ -336,48 +341,49 @@ weighting all types of staff equally are all somewhat arbitrary and
 may not agree exactly with what @grieco2017 did. 
 
 ```julia
-dialysis[:labor] = (dialysis[:nurseFT] + 0.5*dialysis[:nursePT]+
-                    dialysis[:ptcareFT] + 0.5*dialysis[:ptcarePT] +
-                    dialysis[:dieticiansFT] + 0.5*dialysis[:dieticiansPT] +
-                    dialysis[:social_workerFT] + 0.5*dialysis[:social_workerPT])
-dialysis[:hiring] = panellag(:labor, dialysis, :provfs, :year, -1) -
-  dialysis[:labor];
+dialysis[!,:labor] = (dialysis[!,:nurseFT] + 0.5*dialysis[!,:nursePT]+
+                    dialysis[!,:ptcareFT] + 0.5*dialysis[!,:ptcarePT] +
+                    dialysis[!,:dieticiansFT] + 0.5*dialysis[!,:dieticiansPT] +
+                    dialysis[!,:social_workerFT] + 0.5*dialysis[!,:social_workerPT])
+dialysis[!,:hiring] = panellag(:labor, dialysis, :provfs, :year, -1) -
+  dialysis[!,:labor];
 ```
 
 Creating for profit and chain indicators.
 ```julia
 # create a Boolean for profit indicator
-dialysis[:for_profit] = dialysis[:profit_status].=="For Profit"
+dialysis[!,:for_profit] = dialysis[!,:profit_status].=="For Profit"
 # The dot in .== is an example of broadcasting. It's very common to
 # want to apply the same function to all elements of an
 # array. Broadcasting does exactly this. If A is an array, and f() is
 # a function that operates on scalars, then f.(A) will apply f to each
 # element of A and return an array of the results. The above .==
-# compares each element of the array dialysis[:profit_status] to the
+# compares each element of the array dialysis[!,:profit_status] to the
 # scalar string "For Profit"
 
 # similarly create indicators for the two largest chains
-dialysis[:fresenius] = dialysis[:chain_name].=="FRESENIUS"
-dialysis[:davita] = dialysis[:chain_name].=="DAVITA";
+dialysis[!,:fresenius] = dialysis[!,:chain_name].=="FRESENIUS"
+dialysis[!,:davita] = dialysis[!,:chain_name].=="DAVITA";
 ```
 
 State inspection rates are a bit more complicated to create.
+
 ```julia
 using Statistics # for mean, std, and so on 
 # first make an indicator for inspected in the last year
-dialysis[:inspected_this_year] =
-  ((dialysis[:days_since_inspection].>=0) .&
-   (dialysis[:days_since_inspection].<365))
+dialysis[!,:inspected_this_year] =
+  ((dialysis[!,:days_since_inspection].>=0) .&
+   (dialysis[!,:days_since_inspection].<365))
 # then take the mean by state
 stateRates = by(dialysis, [:state, :year],
                 # by(data, :var, f) will apply f to each group of data
                 # with a different value of :var
-                df -> mean(skipmissing(df[:inspected_this_year])))
-# df -> mean(skipmissing(df[:inspected_this_year])) is a shorthand way
+                df -> mean(skipmissing(df[!,:inspected_this_year])))
+# df -> mean(skipmissing(df[!,:inspected_this_year])) is a shorthand way
 # to define a function it's equalivant to
 #
 # function f(df)
-#   mean(skipmissing(df[:inspected_this_year]))
+#   mean(skipmissing(df[!,:inspected_this_year]))
 # end
 #
 # skipmissing skips missing values inside a DataFrame. Most arithmetic
@@ -397,9 +403,9 @@ try to find data linking city, state to HSA, and use that to calculate
 competitors in the same HSA. 
 
 ```julia
-dialysis[:city] = uppercase.(dialysis[:city]) 
+dialysis[!,:city] = uppercase.(dialysis[!,:city]) 
 comps = by(dialysis,[:city,:year],
-           df -> mapreduce((x) -> ifelse(ismissing(x),0,1*(x>0)), +, df[:patient_months])
+           df -> mapreduce((x) -> ifelse(ismissing(x),0,1*(x>0)), +, df[!,:patient_months])
            )
 rename!(comps, :x1 => :competitors)
 dialysis = join(dialysis, comps, on = [:city,:year]);
@@ -425,7 +431,7 @@ function summaryTable(df, vars;
   # In case you want to search for information about the syntax used here, 
   # [XXX for XXX] is called a comprehension
   # The ... is called the splat operator
-  DataFrame([vars [[f(skipmissing(df[v])) for v in vars] for f in funcs]...], colnames)  
+  DataFrame([vars [[f(skipmissing(df[!,v])) for v in vars] for f in funcs]...], colnames)  
 end
 summaryTable(dialysis, vars)
 ```
@@ -442,21 +448,21 @@ StatPlots.jl, Plots.jl, or VegaLite.jl github pages for more examples.
 ### Comparing output measures
 
 ```julia
-using StatPlots , Plots
-Plots.gr(fmt=:png)
-dialysis[:patient_years] = dialysis[:patient_months]/12
+using StatsPlots , Plots
+Plots.gr()
+dialysis[!,:patient_years] = dialysis[!,:patient_months]/12
 # missings will mess up corrplot
 vars = [:patient_years, :patient_years_hd, :patient_years_rom]
 inc = completecases(dialysis[vars])
-@df dialysis[inc,:] corrplot([:patient_years :patient_years_hd :patient_years_rom])
+@df dialysis[inc,vars] corrplot(cols(vars))
 ```
 
 ### Trends over time
 
 ```julia
 function yearPlot(var)
-  data = dialysis[completecases(dialysis[[:year, var]]),:]
-  scatter(data[:year], data[var], alpha=0.1, legend=:none,
+  data = dialysis[completecases(dialysis[:,[:year, var]]),:]
+  scatter(data[!,:year], data[!,var], alpha=0.1, legend=:none,
           markersize=3, markerstrokewidth=0.0)
   yearmeans = by(data, :year,
                  mean = var => x->mean(skipmissing(x)),
@@ -469,7 +475,7 @@ function yearPlot(var)
                  q99  = var => x->quantile(skipmissing(x), 0.99))
   @df yearmeans plot!(:year, :mean, colour = ^(:black), linewidth=4)
   @df yearmeans plot!(:year, cols(3:ncol(yearmeans)),
-                      colour = ^(:red), alpha=0.3, legend=:none,
+                      colour = ^(:red), alpha=0.4, legend=:none,
                       xlabel="year", ylabel=String(var))
 end
 yearPlot(:labor)
@@ -529,12 +535,12 @@ function ols_residuals(data::DataFrame,  y::Symbol,
   # document what inputs this function expects, and throw useful error
   # messages if someone tries calling the function on the wrong types.
 
-  inc = completecases(data[[y, x...]]) # deal with missing
-  Y = disallowmissing(data[y][inc])
+  inc = completecases(data[:,[y, x...]]) # deal with missing
+  Y = disallowmissing(data[inc,y])
   if (intercept) 
-    X = [ones(sum(inc)) data[x][inc,:]]
+    X = [ones(sum(inc)) data[inc,x]]
   else
-    X = data[x][inc,:]
+    X = data[inc,x]
   end
   X = disallowmissing(convert(Matrix, X))
   
@@ -569,28 +575,27 @@ how to accomplish the same thing using FixedEffectModels.jl.
 ```julia
 using FixedEffectModels
 
-dialysis[:idcat] = categorical(dialysis[:provfs])
+dialysis[!,:idcat] = categorical(dialysis[!,:provfs])
 # FixedEffectModels requires clustering and fixed effect variables to
 # be categorical
 
-qreg = reg(dialysis, @model(pct_septic ~ days_since_inspection + patient_age +
-                            pct_female + patient_esrd_years + pct_fistula + comorbidities +
-                            hemoglobin, vcov=cluster(idcat)),
-           save=true) # saves residuals in augmentdf
-dialysis[:quality] = -qreg.augmentdf[:residuals]
+qreg = reg(dialysis, @mformula(pct_septic ~ days_since_inspection + patient_age +
+                               pct_female + patient_esrd_years + pct_fistula + comorbidities +
+                               hemoglobin), Vcov.cluster(idcat),save=true) # saves residuals in augmentdf
+dialysis[!,:quality] = -qreg.augmentdf[!,:residuals]
 
 # Let's test that these results are the same from ols_residuals
-println("Mean absolute difference = $(mean(skipmissing( abs.(q.- dialysis[:quality]) )))") 
+println("Mean absolute difference = $(mean(skipmissing( abs.(q.- dialysis[!,:quality]) )))") 
 # using $(expr) in a string will insert the result of expr in the$
 # string 
 
 using Test
-@test all(skipmissing(q .≈ dialysis[:quality])) == true
+@test all(skipmissing(q .≈ dialysis[!,:quality])) == true
 ```
 Testing is an important part of software development. The
 [Test.jl](https://docs.julialang.org/en/v1/stdlib/Test/index.html) 
 package provides help function for running tests. See [these notes from
-628](https://nbviewer.jupyter.org/github/ubcecon/ECON628_2018/blob/master/notebooks/testing.ipynb)
+622](https://julia.quantecon.org/more_julia/testing.html)
 for more information about testing. 
 
 ## Problem 4: OLS and fixed effects estimates
@@ -600,13 +605,12 @@ effects regression is shown below:
 ```julia
 # you may want to use patient_years_hd or patient_years_rom instead
 log_infmiss = x->ifelse(!ismissing(x) && x>0, log(x), missing) # -Inf confuses reg()
-dialysis[:lpy] = log_infmiss.(dialysis[:patient_months]./12)
-dialysis[:logL] = log_infmiss.(dialysis[:labor])
-dialysis[:logK] = log_infmiss.(dialysis[:stations])
+dialysis[!,:lpy] = log_infmiss.(dialysis[!,:patient_months]./12)
+dialysis[!,:logL] = log_infmiss.(dialysis[!,:labor])
+dialysis[!,:logK] = log_infmiss.(dialysis[!,:stations])
 
 # you may want to restrict sample to match sample that can be used in model estimates 
-reg(dialysis, @model(lpy ~ quality + logK + logL, fe = idcat, vcov =
-                     cluster(idcat)))
+reg(dialysis, @formula(lpy ~ quality + logK + logL + fe(idcat)), Vcov.cluster(:idcat))
 ```
 Be sure to add the other columns. If you'd like, you could use
 [RegressionTables.jl](https://github.com/jmboehm/RegressionTables.jl)
@@ -621,7 +625,7 @@ y_{jt} = \alpha q_{jt} + \Phi(\underbrace{h_{jt}, k_{jt}, l_{jt}, x_{jt}}_{w_{jt
 \epsilon_{jt}
 $$
 with a second noisy measure of quality, $z_{jt}$, used to instrument
-for $\alpha$. To estimate $\alpha$, first the exogenous variables,
+for $q_{jt}$. To estimate $\alpha$, first the exogenous variables,
 $w$, can be partialed out to give:
 $$
 y_{jt} - \Er[y_{jt} | w_{jt} ] = \alpha (q_{jt} - \Er[q_{jt}|w_{jt}]) +
@@ -657,7 +661,7 @@ model. Also included are two methods for estimating
 $\hat{E}[y|w]$. `polyreg` estimates a polynomial series regression,
 that is it regresses $y$ on a polynomial of degree $d$ in $w$. To
 allow the regression to approximate any function, the degree must
-increase with the sample size, but to control variance the degree must
+increase with the sample size, but to control variance, the degree must
 not increase too quickly. We will not worry too much about the choice
 of degree here. 
 
@@ -693,16 +697,16 @@ Tables 5 and 6 of @grieco2017.
 
 ```julia
 # create indicator for observations usable in estimation of α
-inc1 = ((dialysis[:patient_months] .> 0) .& (dialysis[:labor] .> 0) .&
-           (dialysis[:stations] .> 0) .&
-           .!ismissing.(dialysis[:quality]) .&
-           .!ismissing.(dialysis[:std_mortality]) .&
-           (dialysis[:invest].==0) .&
-           (dialysis[:hiring].!=0));
+inc1 = ((dialysis[!,:patient_months] .> 0) .& (dialysis[!,:labor] .> 0) .&
+           (dialysis[!,:stations] .> 0) .&
+           .!ismissing.(dialysis[!,:quality]) .&
+           .!ismissing.(dialysis[!,:std_mortality]) .&
+           (dialysis[!,:invest].==0) .&
+           (dialysis[!,:hiring].!=0));
 inc1[ismissing.(inc1)] .= false;
-dialysis[:inc1] = inc1;
+dialysis[!,:inc1] = inc1;
 
-dialysis[:lsmr] = log.(dialysis[:std_mortality] .+ .01)
+dialysis[!,:lsmr] = log.(dialysis[!,:std_mortality] .+ .01)
 # As degree → ∞ and/or bandwidth → 0, whether we use :std_mortality or
 # some transformation as the instrument should not matter. However,
 # for fixed degree or bandwidth it will have some (hopefully small)
@@ -713,7 +717,7 @@ dialysis[:lsmr] = log.(dialysis[:std_mortality] .+ .01)
                          :lsmr,   # z
                          [:hiring, :logL, :logK,
                          :state_inspection_rate, :competitors], # w
-                         dialysis[findall(dialysis[:inc1]),:];
+                         dialysis[findall(dialysis[!,:inc1]),:];
                          npregress=(xp, xd,yd)->polyreg(xp,xd,yd,degree=1),
                          parts=true                      
                          # You may want to change the degree here
@@ -727,18 +731,19 @@ dialysis[:lsmr] = log.(dialysis[:std_mortality] .+ .01)
                          ) 
 
 # we will need these later in step 2
-dialysis[:Φ] = similar(dialysis[:lpy])
-dialysis[:Φ] .= missing
-dialysis[:Φ][findall(dialysis[:inc1])] = Φ
-dialysis[:ey] = similar(dialysis[:lpy])
-dialysis[:ey] .= missing
-dialysis[:ey][findall(dialysis[:inc1])] = eyqz[:,1]
-dialysis[:eq] = similar(dialysis[:lpy])
-dialysis[:eq] .= missing
-dialysis[:eq][findall(dialysis[:inc1])] = eyqz[:,2]
-dialysis[:ez] = similar(dialysis[:lpy])
-dialysis[:ez] .= missing
-dialysis[:ez][findall(dialysis[:inc1])] = eyqz[:,3]
+dialysis[!,:Φ] = similar(dialysis[!,:lpy])
+dialysis[:,:Φ] .= missing
+rows = findall(dialysis[!,:inc1])
+dialysis[rows,:Φ] = Φ
+dialysis[!,:ey] = similar(dialysis[!,:lpy])
+dialysis[:,:ey] .= missing
+dialysis[rows,:ey] = eyqz[:,1]
+dialysis[!,:eq] = similar(dialysis[!,:lpy])
+dialysis[:,:eq] .= missing
+dialysis[rows,:eq] = eyqz[:,2]
+dialysis[!,:ez] = similar(dialysis[!,:lpy])
+dialysis[:,:ez] .= missing
+dialysis[rows,:ez] = eyqz[:,3]
 
 α
 ```
@@ -832,7 +837,7 @@ The model
 implies that 
 $$
 \omega_{jt} = \Phi(w_{jt}) - \beta_k k_{jt} - \beta_l l_{jt} 
-$$ {#eq:omega}
+$$ 
 and 
 $$
 y_{jt} - \alpha q_{jt} - \beta_k k_{jt} - \beta_l l_{jt} =
@@ -843,7 +848,7 @@ $$
 \Er[\eta_{jt} | k_{jt}, l_{jt}, w_{jt-1}]
 $$
 Given a value of $\beta$, and our above estimates of $\Phi$ and
-$\alpha$, we can compute $\omega$ from @eq:omega, and then estimate
+$\alpha$, we can compute $\omega$ from the equation above, and then estimate
 $g()$ and $\eta$ by a nonparametric regression of
 $y_{jt} - \alpha q_{jt} - \beta_k k_{jt} - \beta_l l_{jt}$ on
 $\omega_{jt-1}$. $\beta$ can then be estimated by finding the value of
@@ -867,13 +872,13 @@ explore robustness of your results to changes in the specification.
 
 ```julia
 # indicator for observations usable in estimation of β
-dialysis[:inclag] = panellag(:inc1, dialysis, :provfs, :year, 1);
-dialysis[:inc2] = (dialysis[:inclag] .&
-                   (dialysis[:stations].>0) .&
-                   (dialysis[:labor].>0) .&
-                   (dialysis[:patient_years].>0) .&
-                   .!ismissing.(dialysis[:quality]));
-dialysis[:inc2][ismissing.(dialysis[:inc2])] .= false;
+dialysis[!,:inclag] = panellag(:inc1, dialysis, :provfs, :year, 1);
+dialysis[!,:inc2] = (dialysis[!,:inclag] .&
+                   (dialysis[!,:stations].>0) .&
+                   (dialysis[!,:labor].>0) .&
+                   (dialysis[!,:patient_years].>0) .&
+                   .!ismissing.(dialysis[!,:quality]));
+dialysis[ismissing.(dialysis[!,:inc2]),:inc2] .= false;
 
 (ωfunc, ηfunc) = errors_gm(:lpy, :logK, :logL, :quality, :Φ, :provfs, :year,
                            dialysis, α; degree=1)
@@ -904,314 +909,16 @@ res
 
 ## Inference
 
-Many, perhaps most, estimators in econometrics are
-extrumem estimators. That is, many estimators are defined by
-$$
-\hat{\theta} = \argmax_{\theta \in \Theta} \hat{Q}_n(\theta)
-$$
-where $\hat{Q}_n(\theta)$ is some objective function that depends on
-data. Examples include maximum likelihood,
-$$
-\hat{Q}_n(\theta) = \frac{1}{n} \sum_{i=1}^n f(z_i | \theta)
-$$
-nonlinear least squares,
-$$
-\hat{Q}_n(\theta) = \frac{1}{n} \sum_{i=1}^n (y_i - h(x_i,\theta))^2
-$$
-and as we are using for this example, GMM,
-$$
-\hat{Q}_n(\theta) = \left(\frac{1}{n} \sum_{i=1}^n g(z_i,
-\theta)\right)' \hat{W} \left(\frac{1}{n} \sum_{i=1}^n g(z_i,
-\theta)\right).
-$$
-See @newey1994 for more details and examples.
-
-We will encounter extremum estimators often in this course, so it is
-useful to be familiar with their statistical properties. However,
-since this course is not focused on econometrics, we will just state
-some basic "high-level" conditions for consistency and asymptotic
-normality, and only give brief sketches of proofs. Our main goal is to find
-the asymptotic distribution of $\hat{\theta}$, so that we can report
-standard errors and confidence regions. If $Q_n$ is differentiable,
-then 
-$$
-  0 = \nabla \hat{Q}_n(\hat{\theta})
-$$
-Taking a first order expansion around $\theta_0$, 
-$$
-  0 \approx \nabla \hat{Q}_n(\theta_0) + (\hat{\theta}-\theta_0) \nabla^2 Q_n(\theta_0)
-$$
-Rearranging and multiplying by $\sqrt{n}$, gives
-$$
-\sqrt{n}(\hat{\theta}-\theta_0) \approx (\nabla^2 Q_n(\theta_0))^{-1}
-\sqrt{n} \hat{Q}_n(\theta_0)
-$$
-If a law of large number applies to $\nabla^2 Q_n(\theta_0)$ and a
-central limit theorem applies to $\sqrt{n} \hat{Q}_n(\theta_0)$, then
-$\sqrt{n}(\hat{\theta}-\theta_0)$ will be asymptotically normal. The
-following theorem states this idea somewhat more precisely.
-
-### Consistency
-
-**Consistency for extremum estimators**: assume
-
-1. $\hat{Q}_n(\theta)$ converges uniformly in probability to
-   $Q_0(\theta)$
-
-2. $Q_0(\theta)$ is uniquely maximized at $\theta_0$.
-
-3. $\Theta$ is compact and $Q_0(\theta)$ is continuous.
-
-Then $\hat{\theta} \inprob \theta_0$
-</div>
-
-
-### Asymptotic normality
-
-**Asymptotic normality for extremum estimators**: assume
-
-1. $\hat{\theta} \inprob \theta_0$
-
-2. $\theta_0 \in interior(\Theta)$
-
-3. $\hat{Q}_n(\theta)$ is twice continuously differentiable in open $N$
-   containing $\theta$, and $\sup_{\theta \in N} \Vert \nabla^2
-                             \hat{Q}_n(\theta) - H(\theta) \Vert
-                             \inprob 0$ with $H(\theta_0)$ nonsingular
-4. $\sqrt{n} \nabla \hat{Q}_n(\theta_0) \indist N(0,\Sigma)$
-
-Then $\sqrt{n} (\hat{\theta} - \theta_0) \indist N\left(0,H^{-1} \Sigma
-  H^{-1} \right)$
-
-### GMM 
-
-For a GMM objective function of the form:
-$$ [1/n \sum_i g_i(\theta)] W_n [1/n \sum g_i(\theta)]$$, 
-if we assume:
-
-1. $1/\sqrt{n} \sum_i g_i(\theta_0) \indist N(0,\Sigma)$
-
-2. $1/n \sum_i \nabla g_i(\theta) \inprob E[\nabla g(\theta)] = D$, 
-   $W_n \inprob W$
-
-3. $(D'WD)$ is nonsingular.
-
-then the above theorem for asymptotic normality of extremum
-estimators implies that 
-$$
-\sqrt{n}(\hat{\theta} - \theta_0) \indist N(0,\Omega)
-$$
-where 
-$$
- \Omega= (D'WD)^{-1} (D' W \Sigma W D) (D'WD)^{-1}.
-$$
-If we additionally assume $W_n \inprob \Sigma^{-1}$, e.g. observations
-are independent and $W_n =
-\widehat{Var}(g_i(\theta))^{-1}$, then the asymptotic variance
-simplifies to $(D' \Sigma D)^{-1}$. This choice of $W$ is efficient in
-that it leads to the smallest asymptotic variance. 
-
-### 2-step estimators
-
-The above applies to estimators that come from minimizing a single
-objective function. This application involves a multi-step
-estimator. First, we estimated $\alpha$ and $\Phi()$, then we
-estimated $\beta$ by GMM using moments of the form:
-$$
-\hat{\beta} = \argmin [1/n \sum_i g_i(\beta, \hat{\alpha},
- \hat{\Phi})] W_n [1/n \sum g_i(\beta, \hat{\alpha}, \hat{\Phi}) ] 
-$$
-A similar expansion as above will give
-$$
-\sqrt{n}(\hat{\beta} - \beta_0) \approx -(D'WD)^{-1} D' W \left(1/\sqrt{n}
-\sum g_i(\beta, \hat{\alpha}, \hat{\Phi}) \right)
-$$
-where $D=\Er[\nabla_\beta g(\beta, \alpha, \Phi)]$. If we also expand
-$g_i$ in terms of $\alpha$ and $\Phi$, we will get, 
-$$
-\sqrt{n}(\hat{\beta} - \beta_0) \approx -(D'WD)^{-1} D' W \left(1/\sqrt{n}
-\sum g_i(\beta_0, \alpha_0, \Phi_0) \right) + \Er[\frac{\partial g_i}{\partial
-\alpha}(\beta,\alpha,\Phi)] \sqrt{n}(\hat{\alpha}-\alpha_0) + \Er[\frac{\partial g_i}{\partial
-\Phi}(\beta,\alpha,\Phi) \sqrt{n}(\hat{\Phi}-\Phi_0) ]. 
-$$
-So, there will be additional variance in $\hat{\beta}$ from the
-estimation of $\hat{\alpha}$ and $\hat{\Phi}$. Since $\alpha$ is
-finite dimensional, it is not too difficult to derive the distribution
-of $\sqrt{n}(\hat{\alpha}-\alpha_0)$ and estimate $\Er[\frac{\partial g_i}{\partial
-\alpha}(\beta,\alpha,\Phi)]$. However, $\hat{\Phi}$ is a function and
-is more difficult to deal with. Under some strong assumptions, 
-$$
- \Er[\frac{\partial g_i}{\partial
-\Phi}(\beta,\alpha,\Phi) \sqrt{n}(\hat{\Phi}-\Phi_0) ] \indist N,
-$$
-but the needed assumptions are slightly restrictive and are tedious to
-state. An alternative approach is to redefine $g_i$ to ensure that
-$E[\frac{\partial g_i}{\partial \Phi}] = 0$. This can be done by
-letting 
-$$
-\begin{align*}
-   g_{jt}(\beta, \alpha, \Phi) = & \left(y_{jt} - \alpha q_{jt} -
-   x_{jt} \beta - h(\Phi(w_{jt-1}) -
-   x_{jt-1}\beta) \right) \left(x_{jt} -
-   \Er[x|\Phi(w_{jt-1}) - x_{jt-1}\beta]\right) + \\
-   & - \left(y_{jt-1} - \alpha
-   q_{jt-1} - \Phi(w_{jt-1})\right) h'(\Phi(w_{jt-1}) - x_{jt-1}\beta) \left(x_{jt} -
-   \Er[x|\Phi(w_{jt-1}) - x_{jt-1}\beta]\right)
-\end{align*}
-$$
-where $x = (k, l)$, and 
-$h(\Phi(w_{jt-1}) - x_{jt-1}) =  \Er[y_{jt} - \alpha q_{jt} - x_{jt}
- \beta |\Phi(w_{jt-1}) - x_{jt-1}\beta]$. It is not too difficult to
-verify that 
-$$
-\Er[g_{jt}(\beta_0,\alpha_0,\Phi_0)] = 0
-$$
-and 
-$$
-0 = D_\Phi \Er[g_{jt}(\beta_0,\alpha_0,\Phi_0)]\;\;,\;\; 0 = D_h \Er[g_{jt}(\beta_0,\alpha_0,\Phi_0)] 
-$$
-In other words, these moment conditions are orthogonal in the sense of
-@chernozhukov2018. Estimation error in $\Phi$ and $h$ only has second
-order effects on the estimate of $\beta$. Under appropriate
-assumptions, these second order effects will vanish quickly enough
-that they can be ignored in the asymptotic distribution of
-$\hat{\beta}$. 
-
-We can similarly deal with the uncertainty in $\hat{\alpha}$ by
-redefining the moment condition to be orthogonal with respect to
-$\alpha$. Let
-$$
-\tilde{g}_{jt}(\beta,\alpha,\Phi) = g_{jt}(\beta,
-\alpha, \Phi) - \Er[ D_\alpha g_{jt}(\beta_0,
-\alpha, \Phi)] \frac{(y_{jt} - \alpha q_{jt} - \Phi(w_{jt}))
-(\Er[q|z_{jt},w_{jt}] - \Er[q|w_{jt}])}{\Er[(q -
-\Er[q|w])(\Er[q|z,w]-\Er[q|w])]}.
-$$
-Then $\Er[\tilde{g}_{jt}(\beta_0,\alpha_0,\Phi_0)] = 0$ and 
-$$
-0 = D_\Phi \Er[\tilde{g}_{jt}(\beta_0,\alpha_0,\Phi_0)]\;\;,\;\; 0 = D_\alpha
-\Er[\tilde{g}_{jt}(\beta_0,\alpha_0,\Phi_0)].
-$$
-Hence, 
-$$
-\begin{align*}
-\frac{1}{\sqrt{n}} \sum_{j,t} \tilde{g}_{jt}(\beta_0, \hat{\alpha}, \hat{\Phi} )
-= & \frac{1}{\sqrt{n}} \sum_{j,t} \tilde{g}_{jt}(\beta_0, \alpha_0,
-\Phi_0 ) + o_p(1) 
-\end{align*}
-$$
-
-Under appropriate assumptions a CLT will apply to $\tilde{g}_{jt}$, so 
-$$
-\frac{1}{\sqrt{n}}  \sum_{j,t} \tilde{g}_{jt}(\hat{\beta}, \hat{\alpha},
-\hat{\Phi} ) = \frac{1}{\sqrt{n}}  \sum_{j,t} \tilde{g}_{jt}(\beta_0,\alpha_0,\Phi_0) + o_p(1)
-\indist N(0,\Sigma)
-$$
-Furthermore, $\Sigma$ can estimated by taking the sample (clustered)
-covariance of
-$\tilde{g}_{jt}(\beta,\hat{\alpha},\hat{\Phi})$. Denote this by
-$\hat{\Sigma}(\beta)$. We then have
-$$
-    Q_n^{CUE}(\beta_0) = \left(\frac{1}{n}  \sum_{j,t} \tilde{g}_{jt}(\beta_0, \hat{\alpha},
-    \hat{\Phi} ) \right)' \hat{\Sigma(\beta_0)}^{-1} \left(\frac{1}{n}
-    \sum_{j,t} \tilde{g}_{jt}(\beta_0, \hat{\alpha}, \hat{\Phi} )
-    \right) \indist \chi^2_{dim(\tilde{g}_{jt})}.
-$$
-This can be used to test $H_0: \beta = \beta_0$, or to form a
-confidence region by taking all values of $\beta$ for which the test
-fails to reject. Such an inference procedure is robust to
-identification problems in that it does not require an assumption
-about $D = D_\beta \Er[g_{jt}(\beta,\alpha_0,\Phi_0)]$ being full rank or $Q_n$ being uniquely minimized
-at $\beta_0$. If we are willing to assume strong identification in that 
-$(D' \Sigma(\beta_0)^{-1} D)$ is invertible (and, loosely speaking, the estimated
-version of this is far from singular relative to its estimation
-error), then we can take an expansion to get 
-$$
-\sqrt{n}(\hat{\beta} - \beta_0) = (D'\Sigma^{-1} D)^{-1} D'\Sigma^{-1}
-\frac{1}{\sqrt{n}} \tilde{g}_{jt}(\beta_0, \alpha_0, \Phi_0) + o_p(1)
-\indist N(0, (D' \Sigma^{-1} D)^{-1}).
-$$
-                                              
-
-See my notes from 628 on [extremum estimation](http://faculty.arts.ubc.ca/pschrimpf/628/extremumEstimation.html)
-and on
-[bootstrap](http://faculty.arts.ubc.ca/pschrimpf/628/bootstrap.html)
-for more details.
-
-The `objective_gm` function in Dialysis.jl constructs the $Q_n^{CUE}$
-objective function described above. The following code minimizes it
-and plots a confidence region for $\beta$ based on inverting the
-$\chi^2$ test described above. 
-
-```julia
-(obj, momenti, cue, varfn) = objective_gm(:lpy, :logK, :logL, :quality, :Φ,
-                                          :provfs, :year,
-                                          [:logK, :logL], dialysis,
-                                          clusterid=:idcat,
-                                          npregress=(xp,xd,yd)->polyreg(xp,xd,yd,degree=1,
-                                                                        deriv=true));
-res = optimize(b->cue(b,α),    # objective
-               [0.0, 0.0], # lower bounds, should not be needed, but
-               # may help numerical performance 
-               [1.0, 1.0], # upper bounds 
-               [0.4, 0.2], # initial value               
-               Fminbox(BFGS()),  # algorithm
-               autodiff=:forward)
-res
-# calculate standard errors based on normal approximation
-βhat = res.minimizer
-gi = momenti(βhat,α)
-(Σ, n) = varfn(gi)
-using ForwardDiff
-using LinearAlgebra # for diag
-D = ForwardDiff.jacobian(β->mean(momenti(β,α), dims=1), βhat)
-Vβ = inv(D'*inv(Σ)*D)/n
-@show βhat
-@show sqrt.(diag(Vβ))
-nothing;
-```
-
-```julia
-using Plots, Distributions
-Plots.gr()
-lb = [0., 0.]
-ub = [1.,  1.]
-ntest = 200
-βtest = [rand(2).*(ub-lb) .+ lb for i in 1:ntest];
-βtest = vcat(βtest'...)
-
-fn = β->cue(β,α)
-pval = Vector{Float64}(undef, ntest);
-qval = similar(pval);
-Threads.@threads for i in 1:size(βtest,1)
-  qval[i] = fn(βtest[i,:]);
-  pval[i] = cdf(Chisq(2),qval[i]);
-end
-
-crit = 0.9
-fig=scatter(βtest[:,1],βtest[:,2], group=(pval.<crit), legend=false,
-            markersize=4, markerstrokewidth=0.0, seriesalpha=1.0,
-            palette=:isolum, xlabel="βk", ylabel="βl")
-ngrid = 20
-b = range.(lb,ub, length=ngrid)
-pc = Matrix{Float64}(undef, length(b[1]), length(b[2]))
-qc = similar(pc)
-Threads.@threads for i in CartesianIndices(pc)
-  qc[i] = fn([b[1][i[1]],b[2][i[2]]]);
-  pc[i] = cdf(Chisq(2),qc[i]);
-end
-
-fig=contour!(b[1],b[2],pc',
-            levels = [0.75, 0.9, 0.95, 0.99],
-             contour_labels=true)
-display(fig)
-```
-
-Here we plot $Q^{CUE}_n(\beta)$. 
-```julia
-Plots.plotly()
-surface(b[1],b[2],qc', xlabel="βk", ylabel="βl")
-```
-
-
+Since the estimation above consists of multiple steps, constructing
+standard errors is not quite as simple as for single step
+estimators. The estimate of $\beta$ in the second step depends on the
+first step estimate of $\alpha$, so the uncertainty in the first step
+estimate of $\alpha$ can affect the standard error of $\beta$. It is
+possible to derive a formula for the asymptotic standard error of
+$\beta$ that takes all this into account, but the formula is somewhat
+long. See [these notes for details](dialysis-inference). The somewhat
+long formula for asymptotic standard errors, has lead many applied
+economists to instead use the bootstrap to compute the standard error
+of multiple step estimators. Here are some of my notes about 
+[bootstrap along with Julia code](https://schrimpf.github.io/GMMInference.jl/bootstrap/).
 
