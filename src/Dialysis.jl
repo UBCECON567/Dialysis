@@ -21,17 +21,19 @@ export panellag, locallinear, loaddata,
 
 Create lags of variables in panel data.
 
-Inputs:
-  - `x` variable to create lag of
-  - `data` DataFrame containing `x`, `id`, and `t`
-  - `id` cross-section identifier
-  - `t` time variable
-  - `lags` number of lags. Can be negative, in which cause leads will
-     be created
+# Arguments 
 
-Output:
-  - A vector containing lags of data[x]. Will be missing for `id` and
-   `t` combinations where the lag is not contained in `data`.
+- `x` variable to create lag of
+- `data` DataFrame containing `x`, `id`, and `t`
+- `id` cross-section identifier
+- `t` time variable
+- `lags` number of lags. Can be negative, in which cause leads will
+   be created
+
+# Returns
+
+- A vector containing lags of data[x]. Will be missing for `id` and
+  `t` combinations where the lag is not contained in `data`.
 
 """
 function panellag(x::Symbol, data::AbstractDataFrame, id::Symbol, t::Symbol,
@@ -70,14 +72,17 @@ Computes local linear regression of ydata on xdata. Returns predicted
 y at x=xpred. Uses Scott's rule of thumb for the bandwidth and a
 Gaussian kernel. xdata should not include an intercept. 
 
-Inputs:
-  - `xpred` x values to compute fitted y
-  - `xdata` observed x
-  - `ydata` observed y, must have `size(y)[1] == size(xdata)[1]`
-  - `bandwidth_multiplier` multiply Scott's rule of thumb bandwidth by
-     this number
-Output: 
-  - Estimates of `f(xpred)`
+# Arguments
+
+- `xpred` x values to compute fitted y
+- `xdata` observed x
+- `ydata` observed y, must have `size(y)[1] == size(xdata)[1]`
+- `bandwidth_multiplier` multiply Scott's rule of thumb bandwidth by
+   this number
+
+# Returns
+
+- Estimates of `f(xpred)`
 """
 function locallinear(xpred::AbstractMatrix,
                      xdata::AbstractMatrix,
@@ -115,15 +120,18 @@ end
 Computes  polynomial regression of ydata on xdata. Returns predicted
 y at x=xpred. 
 
-Inputs:
-  - `xpred` x values to compute fitted y
-  - `xdata` observed x
-  - `ydata` observed y, must have `size(y)[1] == size(xdata)[1]`
-  - `degree`
-  - `deriv` whether to also return df(xpred). Only implemented when
-    xdata is one dimentional
-Output: 
-  - Estimates of `f(xpred)`
+# Arguments
+
+- `xpred` x values to compute fitted y
+- `xdata` observed x
+- `ydata` observed y, must have `size(y)[1] == size(xdata)[1]`
+- `degree`
+- `deriv` whether to also return df(xpred). Only implemented when
+   xdata is one dimentional
+
+# Returns
+
+- Estimates of `f(xpred)`
 """
 function polyreg(xpred::AbstractMatrix,
                  xdata::AbstractMatrix,
@@ -172,7 +180,7 @@ end
 Loads "dialysisFacilityReports.rda". Returns a DataFrame.
 """
 function loaddata()
-  rdafile=normpath(joinpath(@__DIR__,"..","data","dialysisFacilityReports.rda"))
+  rdafile=normpath(joinpath(dirname(Base.pathof(Dialysis)),"..","data","dialysisFacilityReports.rda"))
   dt = RData.load(rdafile,convert=true)
   dt["dialysis"]
 end
@@ -185,22 +193,14 @@ function partiallinear(y::Symbol, x::Array{Symbol, 1},
 
 Estimates a partially linear model. That is, estimate
 
+```math
   y = xβ + f(controls) + ϵ
+```
 
 Assuming that E[ϵ|x, controls] = 0.
 
-Uses orthogonal (wrt f) moments to estimate β. In particular, it uses
+# Arguments
 
-0 = E[(y - E[y|controls]) - (x - E[x|controls])β)*(x - E[x|controls])]
-
-to estimate β. In practice this can be done by regressing 
-(y - E[y|controls]) on (x - E[x|controls]). FixedEffectModels is used
-for this regression. Due to the orthogonality of the moment condition
-the standard errors on β will be the same as if  
-E[y|controls] and E[x|controls] were observed (i.e. FixedEffectModels
-will report valid standard errors)
-
-Inputs:
 - `y` symbol specificying y variable
 - `x`
 - `controls` list of control variables entering f
@@ -210,9 +210,24 @@ Inputs:
 - `clustervar` symbol specifying categorical variable on which to
    cluster when calculating standard errors 
 
-Output:
+# Returns
+
 - regression output from FixedEffectModels.jl
 
+# Details
+
+Uses orthogonal (with respect to f) moments to estimate β. In particular, it uses
+
+```math
+0 = E[(y - E[y|controls]) - (x - E[x|controls])β)*(x - E[x|controls])]
+```
+
+to estimate β. In practice this can be done by regressing 
+(y - E[y|controls]) on (x - E[x|controls]). FixedEffectModels is used
+for this regression. Due to the orthogonality of the moment condition
+the standard errors on β will be the same as if  
+E[y|controls] and E[x|controls] were observed (i.e. FixedEffectModels
+will report valid standard errors)
 """
 function partiallinear(y::Symbol, x::Array{Symbol, 1},
                        controls::Array{Symbol,1}, 
@@ -270,7 +285,7 @@ E[y|controls] and E[q|controls] were observed (i.e. FixedEffectModels
 will report valid standard errors)
 
 
-Inputs:
+# Arguments
 - `y` symbol specificying y variable
 - `q`
 - `z` list of instruments
@@ -280,7 +295,7 @@ Inputs:
    to partial out E[y|controls], E[q|z,controls], and E[q|controls]. Syntax
    should be the same as `locallinear` or `polyreg`
 
-Output:
+# Returns
 - `α` estimate of α
 - `Φ` estimate of Φ(controls)
 - `regest` regression output with standard error for α
@@ -348,7 +363,8 @@ end
 
 Returns functions that given β calculate ω(β) and η(β).
 
-Inputs:
+# Arguments
+
  - `y` Symbol for y variable in data
  - `k` Symbol for k variable in data
  - `l` Symbol for l variable in data
@@ -359,7 +375,8 @@ Inputs:
  - `data` DataFrame containing variables
  - `α` estimate of α
 
-Output: 
+# Returns
+
  - ωfunc(β) computes ω given β for the `data` and α passed in as
    input. `length(ωfunc(β)) == nrow(data)` ωfunc(β) will contain missings
    if the data does.
@@ -378,12 +395,12 @@ function errors_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
   end
   df = deepcopy(data) # modifying df in Η make this not thread safe
   function Η(β::AbstractVector)
-    df[:ω] = Ω(β);
-    df[:ωlag] = panellag(:ω, df, id, t);
-    df[:ytilde] = df[y] - α*df[q] -df[k]*β[1] - df[l]*β[2];
-    inc = completecases(df[[:ωlag, :ytilde]])
-    X = reshape(disallowmissing(df[:ωlag][inc]), sum(inc), 1)
-    Y = reshape(disallowmissing(df[:ytilde][inc]), sum(inc),1)
+    df[!,:ω] = Ω(β);
+    df[!,:ωlag] = panellag(:ω, df, id, t);
+    df[!,:ytilde] = df[!,y] - α*df[!,q] -df[!,k]*β[1] - df[!,l]*β[2];
+    inc = completecases(df[:,[:ωlag, :ytilde]])
+    X = reshape(disallowmissing(df[inc,:ωlag]), sum(inc), 1)
+    Y = reshape(disallowmissing(df[inc,:ytilde]), sum(inc),1)
     ηi = Y - npregress(X,X,Y, degree=degree)
     η = Array{Union{Missing, eltype(ηi)}, 1}(undef, nrow(df))
     η .= missing
@@ -410,41 +427,41 @@ function objective_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
                       npregress::Function=(xp,xd,yd)->polyreg(xp,xd,yd,degree=1,
                                                               deriv=true),
                       clusterid=nothing)
-  z = convert(Matrix,data[instruments]);
-  dta = deepcopy(data[unique([y, k, l, q, Φ, id, t, instruments...,
-                             :eq, :ez, :ey])]);
-  dta[:eqlag] = panellag(:eq, dta, id, t, 1)
-  dta[:eylag] = panellag(:ey, dta, id, t, 1)
-  dta[:ezlag] = panellag(:ez, dta, id, t, 1)
+  z = convert(Matrix,data[!,instruments]);
+  dta = deepcopy(data[:,unique([y, k, l, q, Φ, id, t, instruments...,
+                                :eq, :ez, :ey])]);
+  dta[!,:eqlag] = panellag(:eq, dta, id, t, 1)
+  dta[!,:eylag] = panellag(:ey, dta, id, t, 1)
+  dta[!,:ezlag] = panellag(:ez, dta, id, t, 1)
   function createparts(datain,β,α)
     df = deepcopy(datain)
-    df[:ω] = df[Φ] - df[k]*β[1] - df[l] * β[2];    
-    df[:ωlag] = panellag(:ω, df, id, t);
-    df[:eΦ] = df[y] - α*df[q] - df[Φ];
-    df[:eΦlag] = panellag(:eΦ, df, id, t);
-    df[:ytilde] = df[y] - α*df[q] -df[k]*β[1] - df[l]*β[2];
+    df[!,:ω] = df[!,Φ] - df[!,k]*β[1] - df[!,l] * β[2];    
+    df[!,:ωlag] = panellag(:ω, df, id, t);
+    df[!,:eΦ] = df[!,y] - α*df[!,q] - df[!,Φ];
+    df[!,:eΦlag] = panellag(:eΦ, df, id, t);
+    df[!,:ytilde] = df[!,y] - α*df[!,q] -df[!,k]*β[1] - df[!,l]*β[2];
     return(df)
   end
   dta = createparts(dta, [0.1,0.1], 0.01)
-  inc = completecases(dta[[:ωlag, :ytilde, :eΦlag, instruments...]])
+  inc = completecases(dta[:,[:ωlag, :ytilde, :eΦlag, instruments...]])
   function momenti(β::AbstractVector, α::Real)
     df = createparts(dta,β,α)
-    X = reshape(disallowmissing(df[:ωlag][inc]), sum(inc), 1)
-    Y = reshape(disallowmissing(df[:ytilde][inc]), sum(inc),1)
-    Q = reshape(disallowmissing(df[:quality][inc]), sum(inc),1)
+    X = reshape(disallowmissing(df[!,:ωlag][inc]), sum(inc), 1)
+    Y = reshape(disallowmissing(df[!,:ytilde][inc]), sum(inc),1)
+    Q = reshape(disallowmissing(df[!,:quality][inc]), sum(inc),1)
     Z = disallowmissing(z[inc,:])
     YQZ = hcat(Y,Q,Z)
     (EYQZ, dEYQZ) = npregress(X,X,YQZ)
     resid = YQZ - EYQZ
-    eΦ = disallowmissing(df[:eΦlag][inc])
+    eΦ = disallowmissing(df[!,:eΦlag][inc])
     η = resid[:,1] - eΦ.*dEYQZ[:,1]
     ez = resid[:,3:end]
     gi = η.*ez
 
-    eqlag = disallowmissing(df[:eqlag][inc])
+    eqlag = disallowmissing(df[inc,:eqlag])
     dGα = mean( (-resid[:,2] + eqlag.*dEYQZ[:,1]).*ez, dims=1)
     gi = gi -  
-      ((df[:eΦlag][inc].*df[:ezlag][inc])/mean(skipmissing(df[:eqlag][inc].*df[:ezlag][inc]))
+      ((df[inc,:eΦlag].*df[inc,:ezlag])/mean(skipmissing(df[inc,:eqlag].*df[inc,:ezlag]))
        )*dGα
   end
   function obj(β::AbstractVector, α::Real)
@@ -455,13 +472,13 @@ function objective_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
   if (clusterid==nothing)
     N = size(gi,1)
   else
-    N = length(unique(data[clusterid][inc]))
+    N = length(unique(data[inc,clusterid]))
   end  
   function Σ(gi)
     if (clusterid==nothing)
       V = cov(gi)
     else
-      V = clustercov(gi, data[clusterid][inc])      
+      V = clustercov(gi, data[inc,clusterid])      
     end
     return(V, N)
   end
@@ -485,14 +502,13 @@ clusterid are independent, and observations with the same clusterid
 may be arbitrarily correlated. Uses number of observations - 1 as the
 degrees of freedom.  
 
-Inputs:
+# Arguments
+
 - `x` number of observations by dimension of x matrix
 - `clusterid` number of observations length vector
 
-Output:
+# Returns
 - `V` dimension of x by dimension of x matrix
-
-
 """
 function clustercov(x::Array{<:Number,2}, clusterid) 
   ucid = unique(clusterid)

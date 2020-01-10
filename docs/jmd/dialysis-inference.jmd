@@ -5,15 +5,18 @@ author      : Paul Schrimpf
 date        : `j using Dates; print(Dates.today())`
 bibliography: "dialysis.bib"
 link-citations: true
+options:
+      out_width : 100%
+      wrap : true
+      fig_width : 800
+      dpi : 192
 ---
 
-<a rel="license"
-href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative
-Commons License" style="border-width:0"
-src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"
-/></a><br />This work is licensed under a <a rel="license"
-href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
-Commons Attribution-ShareAlike 4.0 International License</a>.
+[![](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-sa/4.0/)
+
+This work is licensed under a [Creative Commons Attribution-ShareAlike
+4.0 International
+License](http://creativecommons.org/licenses/by-sa/4.0/) 
 
 $$
 \def\indep{\perp\!\!\!\perp}
@@ -30,7 +33,7 @@ $$
 $$
 
 This document discusses inference for the two-step production function
-estimator in Grieco \& McDevitt. 
+estimator in Grieco \& McDevitt. A notebook version is available [here.](dialysis-inference.ipynb)
 
 # Inference for Grieco \& McDevitt Replication
 
@@ -267,12 +270,112 @@ and on
 [bootstrap](https://schrimpf.github.io/GMMInference.jl/bootstrap/)
 for more details.
 
+# Results
+
+First, we must load the data and prepare the data. (This repeats what was done in the assignment). 
+
+```julia; cache=true
+using Pkg
+try 
+  using Dialysis # This assignment itself is in the "Dialysis" package. We will use some of the functions from it. 
+catch
+  Pkg.add(PackageSpec(url="https://github.com/UBCECON567/Dialysis"))
+end
+docdir = normpath(joinpath(dirname(Base.pathof(Dialysis)), "..","docs"))
+Pkg.activate(docdir)
+Pkg.instantiate()
+
+using DataFrames                  
+dialysis = loaddata()
+sort!(dialysis, (:provfs, :year))
+dialysis[!,:invest] = panellag(:stations, dialysis, :provfs, :year, -1) -
+  dialysis[!,:stations]; 
+dialysis[!,:labor] = (dialysis[!,:nurseFT] + 0.5*dialysis[!,:nursePT]+
+                    dialysis[!,:ptcareFT] + 0.5*dialysis[!,:ptcarePT] +
+                    dialysis[!,:dieticiansFT] + 0.5*dialysis[!,:dieticiansPT] +
+                    dialysis[!,:social_workerFT] + 0.5*dialysis[!,:social_workerPT])
+dialysis[!,:hiring] = panellag(:labor, dialysis, :provfs, :year, -1) -
+  dialysis[!,:labor];
+dialysis[!,:for_profit] = dialysis[!,:profit_status].=="For Profit"
+dialysis[!,:fresenius] = dialysis[!,:chain_name].=="FRESENIUS"
+dialysis[!,:davita] = dialysis[!,:chain_name].=="DAVITA";
+using Statistics # for mean, std, and so on 
+dialysis[!,:inspected_this_year] =
+  ((dialysis[!,:days_since_inspection].>=0) .&
+   (dialysis[!,:days_since_inspection].<365))
+stateRates = by(dialysis, [:state, :year],
+                df -> mean(skipmissing(df[!,:inspected_this_year])))
+rename!(stateRates, :x1 => :state_inspection_rate)
+dialysis = join(dialysis, stateRates, on = [:state, :year]);
+dialysis[!,:city] = uppercase.(dialysis[!,:city]) 
+comps = by(dialysis,[:city,:year],
+           df -> mapreduce((x) -> ifelse(ismissing(x),0,1*(x>0)), +, df[!,:patient_months])
+           )
+rename!(comps, :x1 => :competitors)
+dialysis = join(dialysis, comps, on = [:city,:year]);
+
+using FixedEffectModels
+
+dialysis[!,:idcat] = categorical(dialysis[!,:provfs])
+qreg = reg(dialysis, @formula(pct_septic ~ days_since_inspection + patient_age +
+                              pct_female + patient_esrd_years + pct_fistula + comorbidities +
+                              hemoglobin), Vcov.cluster(:idcat),save=true) # saves residuals in augmentdf
+dialysis[!,:quality] = -qreg.augmentdf[!,:residuals];
+log_infmiss = x->ifelse(!ismissing(x) && x>0, log(x), missing) # -Inf confuses reg()
+dialysis[!,:lpy] = log_infmiss.(dialysis[!,:patient_months]./12);
+dialysis[!,:logL] = log_infmiss.(dialysis[!,:labor]);
+dialysis[!,:logK] = log_infmiss.(dialysis[!,:stations]);
+```
+
+Now, we re-run the first step of estimation. 
+```julia; cache=true
+inc1 = ((dialysis[!,:patient_months] .> 0) .& (dialysis[!,:labor] .> 0) .&
+           (dialysis[!,:stations] .> 0) .&
+           .!ismissing.(dialysis[!,:quality]) .&
+           .!ismissing.(dialysis[!,:std_mortality]) .&
+           (dialysis[!,:invest].==0) .&
+           (dialysis[!,:hiring].!=0));
+inc1[ismissing.(inc1)] .= false;
+dialysis[!,:inc1] = inc1;
+
+dialysis[!,:lsmr] = log.(dialysis[!,:std_mortality] .+ .01)
+
+(α, Φ, αreg, eyqz)=partiallinearIV(:lpy,  # y 
+                         :quality, # q
+                         :lsmr,   # z
+                         [:hiring, :logL, :logK,
+                         :state_inspection_rate, :competitors], # w
+                         dialysis[findall(dialysis[!,:inc1]),:];
+                         npregress=(xp, xd,yd)->polyreg(xp,xd,yd,degree=1),
+                         parts=true                      
+                         ) 
+
+# we will need these later in step 2
+dialysis[!,:Φ] = similar(dialysis[!,:lpy])
+dialysis[:,:Φ] .= missing
+rows = findall(dialysis[!,:inc1])
+dialysis[rows,:Φ] = Φ
+dialysis[!,:ey] = similar(dialysis[!,:lpy])
+dialysis[:,:ey] .= missing
+dialysis[rows,:ey] = eyqz[:,1]
+dialysis[!,:eq] = similar(dialysis[!,:lpy])
+dialysis[:,:eq] .= missing
+dialysis[rows,:eq] = eyqz[:,2]
+dialysis[!,:ez] = similar(dialysis[!,:lpy])
+dialysis[:,:ez] .= missing
+dialysis[rows,:ez] = eyqz[:,3]
+
+α
+```
+
 The `objective_gm` function in Dialysis.jl constructs the $Q_n^{CUE}$
 objective function described above. The following code minimizes it
 and plots a confidence region for $\beta$ based on inverting the
 $\chi^2$ test described above. 
 
-```julia
+```julia; cache=true
+using Optim
+
 (obj, momenti, cue, varfn) = objective_gm(:lpy, :logK, :logL, :quality, :Φ,
                                           :provfs, :year,
                                           [:logK, :logL], dialysis,
@@ -300,7 +403,7 @@ Vβ = inv(D'*inv(Σ)*D)/n
 nothing;
 ```
 
-```julia
+```julia; cache=true
 using Plots, Distributions
 Plots.gr()
 lb = [0., 0.]
@@ -337,7 +440,8 @@ display(fig)
 ```
 
 Here we plot $Q^{CUE}_n(\beta)$. 
-```julia
+
+```julia; cache=true
 Plots.plotly()
 surface(b[1],b[2],qc', xlabel="βk", ylabel="βl")
 ```

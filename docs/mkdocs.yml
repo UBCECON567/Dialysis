@@ -1,0 +1,42 @@
+site_name:        " "
+repo_url:         https://github.com/UBCECON567/Dialysis
+site_description: Reproducing Grieco & McDevitt (2017)
+site_author:      Paul Schrimpf
+copyright:        Paul Schrimpf
+edit_uri: ''
+
+theme:
+    name: journal
+    highlightjs: true
+       - julia
+
+extra_css:
+  - assets/Documenter.css
+  - assets/extra.css
+
+extra_javascript:
+  - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML
+  - assets/mathjaxhelper.js
+
+markdown_extensions:
+  - extra
+  - tables
+  - meta
+  - fenced_code
+  - smarty
+  - toc:
+     permalink: True
+  - sane_lists
+  - admonition
+  - footnotes
+  - mdx_math
+  - attr_list
+
+docs_dir: 'build'
+
+nav:
+  - Function Reference: index.md
+  - Assignment: dialysis.md
+  - Inference: dialysis-inference.md
+  - About:
+    - License: license.md

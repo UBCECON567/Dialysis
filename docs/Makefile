@@ -6,48 +6,47 @@ vpath %.jmd jmd
 
 jmdin := $(wildcard jmd/*.jmd)
 jmdmd := $(patsubst jmd/%.jmd, md/%.md,$(jmdin))
-jmdout := $(patsubst jmd/%.jmd, src/%.md,$(jmdin))
+jmdout := $(patsubst jmd/%.jmd, build/%.md,$(jmdin))
 
-#docin := $(wildcard src/*.md)
-#docout := $(patsubst src/%.md, build/%.md,$(docin))
+docin := $(wildcard src/*.md)
+docout := $(patsubst src/%.md, build/%.md,$(docin))
 
 
 mdout := $(jmdout) 
 
-nbout := $(patsubst jmd/%.jmd, src/%.ipynb,$(jmdin))
+nbout := $(patsubst jmd/%.jmd, build/%.ipynb,$(jmdin))
 
 
 #build/figure : figure
 #	ln -s figure build/figure
 
-#build/figures : md/figures
-#	ln -s md/figres jmd/figures
+build/figures : md/figures
+	ln -s md/figures build/figures
 
 jmd : $(jmdout) 
 nb : $(nbout)
 doc: $(docout)
 
-$(rmdmd) : md/%.md : %.Rmd
-	$(RKNIT) $< $@
-
 $(jmdmd) : md/%.md : %.jmd #makeweave.jl 
 	$(WEAVE) $< $@  weave
 
-$(mdout) : src/%.md : md/%.md
+$(mdout) : build/%.md : md/%.md
+	@mkdir -p $(@D)
 	$(PANDOC) $< -o $@
 
-$(nbout) : src/%.ipynb : %.jmd 
+$(nbout) : build/%.ipynb : %.jmd
+	@mkdir -p $(@D)
 	$(WEAVE) $< $@  notebook
 
 $(docout) : build/%.md :  src/%.md
-	julia -e "using Documenter, NeuralNetworkEconomics, DocumenterMarkdown; makedocs( modules=[NeuralNetworkEconomics],  format=Markdown(), clean=false,  pages=[  \"Home\" => \"index.md\" ], repo=\"https://github.com/UBCECON567/Dialysis/blob/{commit}{path}#L{line}\",  sitename=\"Dialysis\",  authors=\"Paul Schrimpf <paul.schrimpf@gmail.com>\")"
+	julia -e "using Pkg; Pkg.activate(\".\"); using Documenter, Dialysis, DocumenterMarkdown; makedocs( modules=[Dialysis],  format=Markdown(), clean=false,  pages=[  \"Home\" => \"index.md\" ], repo=\"https://github.com/UBCECON567/Dialysis/blob/{commit}{path}#L{line}\",  sitename=\"Reproducing Grieco & McDevitt (2017)\",  authors=\"Paul Schrimpf <schrimpf@mail.ubc.ca>\")"
 
-#site: site/index.html
+site: site/index.html
 
-#site/index.html: $(rmdout) $(jmdout) $(docout) mkdocs.yml
-#	mkdocs build
+site/index.html: $(jmdout) $(docout) mkdocs.yml
+	mkdocs build
 
-#all: site/index.html $(nbout)
+all: site/index.html $(nbout)
 
-#deploy: site/index.html 
-#	mkdocs gh-deploy
+deploy: site/index.html 
+	mkdocs gh-deploy

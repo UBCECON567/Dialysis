@@ -11,7 +11,7 @@ if runweave
   println("weaving markdown for $src")
   using Weave
   weave(src,out_path="md",
-        cache=:refresh, cache_path="weavecache",
+        cache=:user, cache_path="weavecache",
         doctype="github", mod=Main,
         args=Dict("md" => true))
 end

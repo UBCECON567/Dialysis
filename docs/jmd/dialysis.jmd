@@ -5,22 +5,25 @@ author      : Paul Schrimpf
 date        : `j using Dates; print(Dates.today())`
 bibliography: "dialysis.bib"
 link-citations: true
+options:
+      out_width : 100%
+      wrap : true
+      fig_width : 800
+      dpi : 192
 ---
 
-<a rel="license"
-href="http://creativecommons.org/licenses/by-sa/4.0/"><img alt="Creative
-Commons License" style="border-width:0"
-src="https://i.creativecommons.org/l/by-sa/4.0/88x31.png"
-/></a><br />This work is licensed under a <a rel="license"
-href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
-Commons Attribution-ShareAlike 4.0 International License</a>.
+[![](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-sa/4.0/)
 
-### About this document {-}
+This work is licensed under a [Creative Commons Attribution-ShareAlike
+4.0 International
+License](http://creativecommons.org/licenses/by-sa/4.0/) 
+
+### About this document
 
 This document was created using Weave.jl. The code is available in
 [on github](https://github.com/ECON567/Dialysis). The same
-document generates both static webpages and associated jupyter
-notebooks.
+document generates both static webpages and a [jupyter
+notebook.](dialysis.ipynb)
 
 $$
 \def\indep{\perp\!\!\!\perp}
@@ -43,26 +46,21 @@ This assignment will reproduce some of the results of @grieco2017.
 ## Getting started 
 
 [https://vse.syzygy.ca](https://vse.syzygy.ca) provides a convenient
-browser based interface to Julia. Open it and log in. This assignment
-is in a git repository at
-[https://github.com/UBCECON567/Dialysis](https://github.com/UBCECON567/Dialysis). Start
-by cloning the git repository to your syzygy directory. Open a
-terminal in syzygy (File -> New -> Terminal). This will open a Linux
-shell in your browser. To clone the git repository, enter 
+browser based interface to Julia. Open it and log in. You now need to
+upload the [Jupyter notebook for this assignment](dialysis.ipynb) and
+open it. You could download it from that link and then upload to vse.syzygy.ca. 
+Alternatively, open a terminal in syzygy (File -> New -> Terminal). This will open a Linux
+shell in your browser. To download the notebook to syzygy enter
 
 `
-git clone https://github.com/UBCECON567/Dialysis
+wget https://ubcecon567.github.io/Dialysis/dialysis.ipynb
 `
 
-This will create a directory called `Dialysis` containing all the
-files related to this assignment. 
 
 Clicking on the folder icon near the top left of the screen opens a
-file browser panel. Use it to open the `Dialysis/notebooks`
-folder. You can complete this assignment by modifying the
-`dialysis.ipynb` notebook. I recommend creating a copy of this
-notebook, and then working on the copy. You can create a copy by right
-clicking in the file browser panel. Now open your copy of the
+file browser panel. Use it to open the `dialysis.ipynb` notebook. I
+recommend renaming your copy of this notebook. You can rename files by
+right clicking in the file browser panel. Now open your copy of the
 notebook.
 
 Notebooks consist of a series of "cells" of either text written in
@@ -108,8 +106,6 @@ sections of either QuantEcon or Think Julia is recommended.
   short book with examples of Julia usage
   
 
-<!-- -------------------------------------------------------------------------------- -->
-
 # Part I: Loading and exploring the data
 
 ## Loading packages
@@ -130,36 +126,18 @@ Cells" menu option produces the output you want). Don't worry about
 understanding the details of the code in this section.
 
 ```julia
-using NeuralNetworkEconomics
-docdir = joinpath(dirname(Base.pathof(NeuralNetworkEconomics)), "..","docs")
-
 using Pkg
+try
+  using Dialysis # This assignment itself is in the "Dialysis" package. We will use some of the functions from it. 
+catch
+  Pkg.update()
+  Pkg.add(PackageSpec(url="https://github.com/UBCECON567/Dialysis"))
+  using Dialysis
+end
+docdir = normpath(joinpath(dirname(Base.pathof(Dialysis)), "..","docs"))
 Pkg.activate(docdir)
 Pkg.instantiate()
-
-using Pkg # loads the Pkg package 
-Pkg.activate("..") # loads environment specified in "../Project.toml"
-                   # This contains a list of packages 
-Pkg.instantiate()  # installs all packages in the environment
 ```
-
-Some useful functions for this assignment are in
-`../src/Dialysis.jl`. We load those functions now. 
-
-```julia
-if (!("../../src" ∈ LOAD_PATH))
-  push!(LOAD_PATH, "../../src") # so that `using` knows where to find Dialysis.jl
-end
-using Dialysis
-```
-
-The functions in Dialysis.jl are organized into a module, 
-just like any other Julia package. Revise.jl is a package to make it
-easier to develop packages (like Dialysis.jl). In particular, `using
-Revise` will make it so that as soon as you save any modifications to
-Dialysis.jl, those modifications will be loaded into your Julia
-session without you doing anything extra. 
-
 
 ## Load the data
 
@@ -172,19 +150,19 @@ Services (CMS). However, there are some differences. Most notably,
 this data covers 2006-2014, instead of 2004-2008 as in @grieco2017 .
 
 The R script
-[https://bitbucket.org/paulschrimpf/econ565/src/master/assignments/production-R/dialysis/downloadDialysisData.R](downloadDialysisData.R)
-downloads, combines, and cleans the data. Unfortunately, dialysisdata.org
-has reorganized their website, and the data no longer seems to be
-available. Similar (likely identical) data is available
+[downloadDialysisData.R](https://bitbucket.org/paulschrimpf/econ565/src/master/assignments/production-R/dialysis/downloadDialysisData.R)
+downloads, combines, and cleans the data. Unfortunately,
+dialysisdata.org has reorganized their website, and the data no longer
+seems to be available. Similar (likely identical) data is available
 from
 [https://data.cms.gov/browse?q=dialysis](https://data.cms.gov/browse?q=dialysis). It
 might be useful to look at the documentation included with any of the
 "Dialysis Facility Report Data for FY20XX" zip files. Anyway, the
 result of the R script is the `dialysisFacilityReports.rda` file
-contained in this git repository. This R data file contains most of
-the variables used by @grieco2017. 
+contained in the git repository for this assignment. This R data file
+contains most of the variables used by @grieco2017.
 
-```julia
+```julia; cache=true
 using DataFrames  # DataFrames.jl is a package for storing and
                   # interacting with datasets
 dialysis = loaddata() # loaddata() is a function I wrote that is part
@@ -200,7 +178,7 @@ we should try to see if there are any striking patterns in the data
 that deserve extra attention. We can get some information about all
 the variables in the data as follows
 
-```julia
+```julia; cache=true
 describe(dialysis)
 ```
 
@@ -255,7 +233,7 @@ January 31, year as reported in year + 1.  Staffing variables with
 the lag of the ones without .l1. However, you might find that this is
 not the case.
 
-As explained in downloadDialysisData.R, data collected in year Y has
+As explained in [downloadDialysisData.R](https://bitbucket.org/paulschrimpf/econ565/src/master/assignments/production-R/dialysis/downloadDialysisData.R), data collected in year Y has
 information on most variables in years Y-1, Y-2, Y-3, and
 Y-4. However, for some variables and survey years, only information in
 years Y-2, Y-3, Y-4 is included. For such variables, at year Y-1, I
@@ -310,7 +288,7 @@ the paper. For example, net investment in stations in year $t$ is the
 difference between the number of stations in year $t+1$ and year in
 $t$.
 
-```julia
+```julia; cache=true
 # sort data by :provfs, :year
 # function names that end with ! indicate that the function will
 # modify one (or more) of its inputs. In this case, sort! modifies the
@@ -340,7 +318,7 @@ We can also create labor and hiring. Note that the choices of giving
 weighting all types of staff equally are all somewhat arbitrary and
 may not agree exactly with what @grieco2017 did. 
 
-```julia
+```julia; cache=true
 dialysis[!,:labor] = (dialysis[!,:nurseFT] + 0.5*dialysis[!,:nursePT]+
                     dialysis[!,:ptcareFT] + 0.5*dialysis[!,:ptcarePT] +
                     dialysis[!,:dieticiansFT] + 0.5*dialysis[!,:dieticiansPT] +
@@ -350,7 +328,7 @@ dialysis[!,:hiring] = panellag(:labor, dialysis, :provfs, :year, -1) -
 ```
 
 Creating for profit and chain indicators.
-```julia
+```julia; cache=true
 # create a Boolean for profit indicator
 dialysis[!,:for_profit] = dialysis[!,:profit_status].=="For Profit"
 # The dot in .== is an example of broadcasting. It's very common to
@@ -368,7 +346,7 @@ dialysis[!,:davita] = dialysis[!,:chain_name].=="DAVITA";
 
 State inspection rates are a bit more complicated to create.
 
-```julia
+```julia; cache=true
 using Statistics # for mean, std, and so on 
 # first make an indicator for inspected in the last year
 dialysis[!,:inspected_this_year] =
@@ -402,7 +380,7 @@ contain information on HSAs. If you are feeling ambitious, you could
 try to find data linking city, state to HSA, and use that to calculate
 competitors in the same HSA. 
 
-```julia
+```julia; cache=true
 dialysis[!,:city] = uppercase.(dialysis[!,:city]) 
 comps = by(dialysis,[:city,:year],
            df -> mapreduce((x) -> ifelse(ismissing(x),0,1*(x>0)), +, df[!,:patient_months])
@@ -418,7 +396,7 @@ Creata a table (or multiple tables) similar to Tables 1-3 of
 @grieco2017. Comment on any notable differences. The following code
 will help you get started.
 
-```julia
+```julia; cache=true
 using Statistics
 
 # at the very least, you will need to change this list
@@ -447,19 +425,19 @@ StatPlots.jl, Plots.jl, or VegaLite.jl github pages for more examples.
 
 ### Comparing output measures
 
-```julia
+```julia; cache=true
 using StatsPlots , Plots
-Plots.gr()
+Plots.pyplot()
 dialysis[!,:patient_years] = dialysis[!,:patient_months]/12
 # missings will mess up corrplot
 vars = [:patient_years, :patient_years_hd, :patient_years_rom]
-inc = completecases(dialysis[vars])
+inc = completecases(dialysis[:,vars])
 @df dialysis[inc,vars] corrplot(cols(vars))
 ```
 
 ### Trends over time
 
-```julia
+```julia; cache=true
 function yearPlot(var)
   data = dialysis[completecases(dialysis[:,[:year, var]]),:]
   scatter(data[!,:year], data[!,var], alpha=0.1, legend=:none,
@@ -506,7 +484,7 @@ against using it instead of or in addition to the septic infection rate and
 standardized mortality ratio. 
 
 We can construct residuals from an OLS regression as follows:
-```julia
+```julia; cache=true
 """
     ols_residuals(data::AbstractDataFrame, y::Symbol,
                   x::Array{Symbol,1}; intecept::Bool=true)
@@ -572,16 +550,16 @@ purposes. Whenever there exists a well-used package, it is (usually)
 better to use the package than try to write your own functions. Here's
 how to accomplish the same thing using FixedEffectModels.jl.
 
-```julia
+```julia; cache=true
 using FixedEffectModels
 
 dialysis[!,:idcat] = categorical(dialysis[!,:provfs])
 # FixedEffectModels requires clustering and fixed effect variables to
 # be categorical
 
-qreg = reg(dialysis, @mformula(pct_septic ~ days_since_inspection + patient_age +
-                               pct_female + patient_esrd_years + pct_fistula + comorbidities +
-                               hemoglobin), Vcov.cluster(idcat),save=true) # saves residuals in augmentdf
+qreg = reg(dialysis, @formula(pct_septic ~ days_since_inspection + patient_age +
+                              pct_female + patient_esrd_years + pct_fistula + comorbidities +
+                              hemoglobin), Vcov.cluster(:idcat),save=true) # saves residuals in augmentdf
 dialysis[!,:quality] = -qreg.augmentdf[!,:residuals]
 
 # Let's test that these results are the same from ols_residuals
@@ -602,7 +580,7 @@ for more information about testing.
 
 Reproduce columns 2,3, 5, and 6 of Table 5. The syntax for fixed
 effects regression is shown below:
-```julia
+```julia; cache=true
 # you may want to use patient_years_hd or patient_years_rom instead
 log_infmiss = x->ifelse(!ismissing(x) && x>0, log(x), missing) # -Inf confuses reg()
 dialysis[!,:lpy] = log_infmiss.(dialysis[!,:patient_months]./12)
@@ -695,7 +673,7 @@ choices of instrument, nonparametric estimation method, degree or
 bandwidth. Compare your estimate(s) of $\alpha$ with the ones in
 Tables 5 and 6 of @grieco2017.
 
-```julia
+```julia; cache=true
 # create indicator for observations usable in estimation of α
 inc1 = ((dialysis[!,:patient_months] .> 0) .& (dialysis[!,:labor] .> 0) .&
            (dialysis[!,:stations] .> 0) .&
@@ -790,7 +768,7 @@ $$
 assuming $\Er[\epsilon|x] = 0$. Test your code on simulated data. The
 following will help you get started.
 
-```julia
+```julia; cache=true
 function sim_ols(n; β = ones(3))
   x = randn(n, length(β))
   ϵ = randn(n)
@@ -870,7 +848,7 @@ Write the body of the $Q_n(\beta)$ function below. Use it to estimate
 $\beta$. Compare your results with those of @grieco2017. Optionally,
 explore robustness of your results to changes in the specification. 
 
-```julia
+```julia; cache=true
 # indicator for observations usable in estimation of β
 dialysis[!,:inclag] = panellag(:inc1, dialysis, :provfs, :year, 1);
 dialysis[!,:inc2] = (dialysis[!,:inclag] .&
