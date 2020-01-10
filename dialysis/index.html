@@ -217,10 +217,12 @@ before considering it complete (that is, make sure the “Run -> Restart
 Kernel and Run all Cells” menu option produces the output you want).
 Don’t worry about understanding the details of the code in this section.</p>
 <pre><code class="julia">using Pkg
-try 
+try
   using Dialysis # This assignment itself is in the &quot;Dialysis&quot; package. We will use some of the functions from it. 
 catch
-  Pkg.add(&quot;https://github.com/UBCECON567/Dialysis&quot;)
+  Pkg.update()
+  Pkg.add(PackageSpec(url=&quot;https://github.com/UBCECON567/Dialysis&quot;))
+  using Dialysis
 end
 docdir = normpath(joinpath(dirname(Base.pathof(Dialysis)), &quot;..&quot;,&quot;docs&quot;))
 Pkg.activate(docdir)
