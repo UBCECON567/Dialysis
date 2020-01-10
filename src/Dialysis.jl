@@ -391,7 +391,7 @@ function errors_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
                    α::Real;
                    npregress::Function=polyreg, degree=1)
   function Ω(β::AbstractVector)
-    data[Φ] - data[k]*β[1] - data[l] * β[2];
+    data[!,Φ] - data[!,k]*β[1] - data[!,l] * β[2];
   end
   df = deepcopy(data) # modifying df in Η make this not thread safe
   function Η(β::AbstractVector)
