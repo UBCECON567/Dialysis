@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Reproducing Grieco & McDevitt (2017)">
+        <meta name="author" content="Paul Schrimpf">
+        
+        <link rel="shortcut icon" href="img/favicon.ico">
+        <title> </title>
+        <link href="css/bootstrap-custom.min.css" rel="stylesheet">
+        <link href="css/font-awesome.min.css" rel="stylesheet">
+        <link href="css/base.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/atelier-forest-light.min.css">
+        <link href="assets/Documenter.css" rel="stylesheet">
+        <link href="assets/extra.css" rel="stylesheet">
+        <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+        <script src="js/jquery-1.10.2.min.js" defer></script>
+        <script src="js/bootstrap-3.0.3.min.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+        <script>hljs.initHighlightingOnLoad();</script> 
+    </head>
+
+    <body class="homepage">
+
+        <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+            <div class="container">
+
+                <!-- Collapsed navigation -->
+                <div class="navbar-header">
+                    <!-- Expander button -->
+                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand" href="."> </a>
+                </div>
+
+                <!-- Expanded navigation -->
+                <div class="navbar-collapse collapse">
+                        <!-- Main navigation -->
+                        <ul class="nav navbar-nav">
+                            <li class="active">
+                                <a href=".">Function Reference</a>
+                            </li>
+                            <li >
+                                <a href="dialysis/">Assignment</a>
+                            </li>
+                            <li >
+                                <a href="dialysis-inference/">Inference</a>
+                            </li>
+                            <li class="dropdown">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">About <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    
+<li >
+    <a href="license/">License</a>
+</li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    <ul class="nav navbar-nav navbar-right">
+                        <li>
+                            <a href="#" data-toggle="modal" data-target="#mkdocs_search_modal">
+                                <i class="fa fa-search"></i> Search
+                            </a>
+                        </li>
+                            <li class="disabled">
+                                <a rel="next" >
+                                    <i class="fa fa-arrow-left"></i> Previous
+                                </a>
+                            </li>
+                            <li >
+                                <a rel="prev" href="dialysis/">
+                                    Next <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="https://github.com/UBCECON567/Dialysis"><i class="fa fa-github"></i> GitHub</a>
+                            </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="container">
+                <div class="col-md-3"><div class="bs-sidebar hidden-print affix well" role="complementary">
+    <ul class="nav bs-sidenav">
+        <li class="main active"><a href="#dialysis">Dialysis</a></li>
+            <li><a href="#function-reference">Function Reference</a></li>
+    </ul>
+</div></div>
+                <div class="col-md-9" role="main">
+
+<p><a id='Dialysis-1'></a></p>
+<h1 id="dialysis">Dialysis<a class="headerlink" href="#dialysis" title="Permanent link">&para;</a></h1>
+<p>This package contains functions useful for reproducing Grieco &amp; McDevitt (2017). See <a href="dialysis/">this assignment.</a></p>
+<p><a id='Function-Reference-1'></a></p>
+<h2 id="function-reference">Function Reference<a class="headerlink" href="#function-reference" title="Permanent link">&para;</a></h2>
+<p><a id='Dialysis.clustercov-Tuple{Array{#s28,2} where #s28<:Number,Any}' href='#Dialysis.clustercov-Tuple{Array{#s28,2} where #s28<:Number,Any}'>#</a>
+<strong><code>Dialysis.clustercov</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code class="julia">clustercov(x::Array{Real,2}, clusterid)
+</code></pre>
+
+<p>Compute clustered, heteroskedasticity robust covariance matrix estimate for Var(∑ x). Assumes that observations with different clusterid are independent, and observations with the same clusterid may be arbitrarily correlated. Uses number of observations - 1 as the degrees of freedom.  </p>
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>x</code> number of observations by dimension of x matrix</li>
+<li><code>clusterid</code> number of observations length vector</li>
+</ul>
+<p><strong>Returns</strong></p>
+<ul>
+<li><code>V</code> dimension of x by dimension of x matrix</li>
+</ul>
+<p><a target='_blank' href='https://github.com/UBCECON567/Dialysis/blob/7f4a79413bcb5d02f2f5a35b5406be01facc1e82/src/Dialysis.jl#LL496-L513' class='documenter-source'>source</a><br></p>
+<p><a id='Dialysis.errors_gm-Tuple{Symbol,Symbol,Symbol,Symbol,Symbol,Symbol,Symbol,DataFrames.DataFrame,Real}' href='#Dialysis.errors_gm-Tuple{Symbol,Symbol,Symbol,Symbol,Symbol,Symbol,Symbol,DataFrames.DataFrame,Real}'>#</a>
+<strong><code>Dialysis.errors_gm</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code class="julia">errors_gm(y::Symbol, k::Symbol, l::Symbol, Φ::Symbol,
+               id::Symbol, t::Symbol, data::DataFrame;
+               npregress::Function=polyreg)
+</code></pre>
+
+<p>Returns functions that given β calculate ω(β) and η(β).</p>
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>y</code> Symbol for y variable in data</li>
+<li><code>k</code> Symbol for k variable in data</li>
+<li><code>l</code> Symbol for l variable in data</li>
+<li><code>q</code> Symbol for q variable in data</li>
+<li><code>Φ</code> Symbol for Φ variable in data</li>
+<li><code>id</code>  Symbol for id variable in data</li>
+<li><code>t</code> Symbol for t variable in data</li>
+<li><code>data</code> DataFrame containing variables</li>
+<li><code>α</code> estimate of α</li>
+</ul>
+<p><strong>Returns</strong></p>
+<ul>
+<li>ωfunc(β) computes ω given β for the <code>data</code> and α passed in as input. <code>length(ωfunc(β)) == nrow(data)</code> ωfunc(β) will contain missings if the data does.</li>
+<li>ηfunc(β) computes η given β. for the <code>data</code> and α passed in as input. <code>length(ηfunc(β)) == nrow(data)</code> ηfunc(β) will contain missings.</li>
+</ul>
+<p>Warning: this function is not thread safe!</p>
+<p><a target='_blank' href='https://github.com/UBCECON567/Dialysis/blob/7f4a79413bcb5d02f2f5a35b5406be01facc1e82/src/Dialysis.jl#LL359-L388' class='documenter-source'>source</a><br></p>
+<p><a id='Dialysis.loaddata-Tuple{}' href='#Dialysis.loaddata-Tuple{}'>#</a>
+<strong><code>Dialysis.loaddata</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code class="julia">loaddata()
+</code></pre>
+
+<p>Loads &ldquo;dialysisFacilityReports.rda&rdquo;. Returns a DataFrame.</p>
+<p><a target='_blank' href='https://github.com/UBCECON567/Dialysis/blob/7f4a79413bcb5d02f2f5a35b5406be01facc1e82/src/Dialysis.jl#LL177-L181' class='documenter-source'>source</a><br></p>
+<p><a id='Dialysis.locallinear-Tuple{AbstractArray{T,2} where T,AbstractArray{T,2} where T,AbstractArray{T,2} where T}' href='#Dialysis.locallinear-Tuple{AbstractArray{T,2} where T,AbstractArray{T,2} where T,AbstractArray{T,2} where T}'>#</a>
+<strong><code>Dialysis.locallinear</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code class="julia">locallinear(xpred::AbstractMatrix,
+            xdata::AbstractMatrix,
+            ydata::AbstractMatrix)
+</code></pre>
+
+<p>Computes local linear regression of ydata on xdata. Returns predicted y at x=xpred. Uses Scott&rsquo;s rule of thumb for the bandwidth and a Gaussian kernel. xdata should not include an intercept. </p>
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>xpred</code> x values to compute fitted y</li>
+<li><code>xdata</code> observed x</li>
+<li><code>ydata</code> observed y, must have <code>size(y)[1] == size(xdata)[1]</code></li>
+<li><code>bandwidth_multiplier</code> multiply Scott&rsquo;s rule of thumb bandwidth by  this number</li>
+</ul>
+<p><strong>Returns</strong></p>
+<ul>
+<li>Estimates of <code>f(xpred)</code></li>
+</ul>
+<p><a target='_blank' href='https://github.com/UBCECON567/Dialysis/blob/7f4a79413bcb5d02f2f5a35b5406be01facc1e82/src/Dialysis.jl#LL65-L86' class='documenter-source'>source</a><br></p>
+<p><a id='Dialysis.objective_gm-Tuple{Symbol,Symbol,Symbol,Symbol,Symbol,Symbol,Symbol,Array{Symbol,1},DataFrames.DataFrame}' href='#Dialysis.objective_gm-Tuple{Symbol,Symbol,Symbol,Symbol,Symbol,Symbol,Symbol,Array{Symbol,1},DataFrames.DataFrame}'>#</a>
+<strong><code>Dialysis.objective_gm</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code class="julia">objective_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
+                  Φ::Symbol, id::Symbol, t::Symbol,
+                  instruments::Array{Symbol,1}, data::DataFrame
+                  ; W=UniformScaling(1.),
+                  npregress::Function=(xp,xd,yd)-&gt;polyreg(xp,xd,yd,degree=1))
+</code></pre>
+
+<p><a target='_blank' href='https://github.com/UBCECON567/Dialysis/blob/7f4a79413bcb5d02f2f5a35b5406be01facc1e82/src/Dialysis.jl#LL413-L422' class='documenter-source'>source</a><br></p>
+<p><a id='Dialysis.panellag' href='#Dialysis.panellag'>#</a>
+<strong><code>Dialysis.panellag</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code class="julia">panellag(x::Symbol, data::AbstractDataFrame, id::Symbol, t::Symbol,
+          lags::Integer=1)
+</code></pre>
+
+<p>Create lags of variables in panel data.</p>
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>x</code> variable to create lag of</li>
+<li><code>data</code> DataFrame containing <code>x</code>, <code>id</code>, and <code>t</code></li>
+<li><code>id</code> cross-section identifier</li>
+<li><code>t</code> time variable</li>
+<li><code>lags</code> number of lags. Can be negative, in which cause leads will  be created</li>
+</ul>
+<p><strong>Returns</strong></p>
+<ul>
+<li>A vector containing lags of data[x]. Will be missing for <code>id</code> and <code>t</code> combinations where the lag is not contained in <code>data</code>.</li>
+</ul>
+<p><a target='_blank' href='https://github.com/UBCECON567/Dialysis/blob/7f4a79413bcb5d02f2f5a35b5406be01facc1e82/src/Dialysis.jl#LL18-L38' class='documenter-source'>source</a><br></p>
+<p><a id='Dialysis.partiallinear-Tuple{Symbol,Array{Symbol,1},Array{Symbol,1},DataFrames.DataFrame}' href='#Dialysis.partiallinear-Tuple{Symbol,Array{Symbol,1},Array{Symbol,1},DataFrames.DataFrame}'>#</a>
+<strong><code>Dialysis.partiallinear</code></strong> &mdash; <em>Method</em>.</p>
+<p>function partiallinear(y::Symbol, x::Array{Symbol, 1},                        data::DataFrame;                        npregress::Function=polyreg,                         clustervar::Symbol=Symbol())</p>
+<p>Estimates a partially linear model. That is, estimate</p>
+<p>
+<script type="math/tex; mode=display">
+  y = xβ + f(controls) + ϵ
+</script>
+</p>
+<p>Assuming that E[ϵ|x, controls] = 0.</p>
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>y</code> symbol specificying y variable</li>
+<li><code>x</code></li>
+<li><code>controls</code> list of control variables entering f</li>
+<li><code>data</code> DataFrame where all variables are found</li>
+<li><code>npregress</code> function for estimating E[w|x] nonparametrically. Used  to partial out E[y|controls] and E[x|controls] and E[q|controls].</li>
+<li><code>clustervar</code> symbol specifying categorical variable on which to  cluster when calculating standard errors</li>
+</ul>
+<p><strong>Returns</strong></p>
+<ul>
+<li>regression output from FixedEffectModels.jl</li>
+</ul>
+<p><strong>Details</strong></p>
+<p>Uses orthogonal (with respect to f) moments to estimate β. In particular, it uses</p>
+<p>
+<script type="math/tex; mode=display">
+0 = E[(y - E[y|controls]) - (x - E[x|controls])β)*(x - E[x|controls])]
+</script>
+</p>
+<p>to estimate β. In practice this can be done by regressing  (y - E[y|controls]) on (x - E[x|controls]). FixedEffectModels is used for this regression. Due to the orthogonality of the moment condition the standard errors on β will be the same as if   E[y|controls] and E[x|controls] were observed (i.e. FixedEffectModels will report valid standard errors)</p>
+<p><a target='_blank' href='https://github.com/UBCECON567/Dialysis/blob/7f4a79413bcb5d02f2f5a35b5406be01facc1e82/src/Dialysis.jl#LL188-L231' class='documenter-source'>source</a><br></p>
+<p><a id='Dialysis.partiallinearIV-Tuple{Symbol,Symbol,Array{Symbol,1},Array{Symbol,1},DataFrames.DataFrame}' href='#Dialysis.partiallinearIV-Tuple{Symbol,Symbol,Array{Symbol,1},Array{Symbol,1},DataFrames.DataFrame}'>#</a>
+<strong><code>Dialysis.partiallinearIV</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code class="julia">  partiallinearIV(y::Symbol, q::Symbol, z::Symbol,
+                  controls::Array{Symbol,1}, data::DataFrame;
+                  npregress::Function)
+</code></pre>
+
+<p>Estimates a partially linear model using IV. That is, estimate</p>
+<p>y = αq + Φ(controls) + ϵ</p>
+<p>using z as an instrument for q with first stage </p>
+<p>q = h(z,controls) + u</p>
+<p>It assumes that E[ϵ|z, controls] = 0. </p>
+<p>Uses orthogonal (wrt Φ and other nuisance functions) moments for estimating α. In particular, it uses </p>
+<p>0 = E[(y - E[y|controls] - α(q - E[q|controls]))*(E[q|z,controls] - E[q|controls])]</p>
+<p>See section 4.2 (in particular footnote 8) of Chernozhukov, Chetverikov, Demirer, Duflo, Hansen, Newey, and Robins (2018) for more information. </p>
+<p>In practice α can be estimated by an iv regression of (y - E[y|controls]) on (q - E[q|controls]) using (E[q|z,controls] - E[q|controls]) as an instrument. FixedEffectModels is used for this regression. Due to the orthogonality of the moment condition, the standard error on α will be the same as if   E[y|controls] and E[q|controls] were observed (i.e. FixedEffectModels will report valid standard errors)</p>
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>y</code> symbol specificying y variable</li>
+<li><code>q</code></li>
+<li><code>z</code> list of instruments</li>
+<li><code>controls</code> list of control variables entering Φ</li>
+<li><code>data</code> DataFrame where all variables are found</li>
+<li><code>npregress</code> function for estimating E[w|x] nonparametrically. Used  to partial out E[y|controls], E[q|z,controls], and E[q|controls]. Syntax  should be the same as <code>locallinear</code> or <code>polyreg</code></li>
+</ul>
+<p><strong>Returns</strong></p>
+<ul>
+<li><code>α</code> estimate of α</li>
+<li><code>Φ</code> estimate of Φ(controls)</li>
+<li><code>regest</code> regression output with standard error for α</li>
+</ul>
+<p><a target='_blank' href='https://github.com/UBCECON567/Dialysis/blob/7f4a79413bcb5d02f2f5a35b5406be01facc1e82/src/Dialysis.jl#LL255-L302' class='documenter-source'>source</a><br></p>
+<p><a id='Dialysis.polyreg-Tuple{AbstractArray{T,2} where T,AbstractArray{T,2} where T,AbstractArray{T,2} where T}' href='#Dialysis.polyreg-Tuple{AbstractArray{T,2} where T,AbstractArray{T,2} where T,AbstractArray{T,2} where T}'>#</a>
+<strong><code>Dialysis.polyreg</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code class="julia">  polyreg(xpred::AbstractMatrix,
+          xdata::AbstractMatrix,
+          ydata::AbstractMatrix; degree=1)
+</code></pre>
+
+<p>Computes  polynomial regression of ydata on xdata. Returns predicted y at x=xpred. </p>
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>xpred</code> x values to compute fitted y</li>
+<li><code>xdata</code> observed x</li>
+<li><code>ydata</code> observed y, must have <code>size(y)[1] == size(xdata)[1]</code></li>
+<li><code>degree</code></li>
+<li><code>deriv</code> whether to also return df(xpred). Only implemented when  xdata is one dimentional</li>
+</ul>
+<p><strong>Returns</strong></p>
+<ul>
+<li>Estimates of <code>f(xpred)</code></li>
+</ul>
+<p><a target='_blank' href='https://github.com/UBCECON567/Dialysis/blob/7f4a79413bcb5d02f2f5a35b5406be01facc1e82/src/Dialysis.jl#LL114-L135' class='documenter-source'>source</a><br></p></div>
+        </div>
+
+        <footer class="col-md-12">
+            <hr>
+                <p>Paul Schrimpf</p>
+            <p>Documentation built with <a href="https://www.mkdocs.org/">MkDocs</a>.</p>
+        </footer>
+        <script>
+            var base_url = ".",
+                shortcuts = {"help": 191, "next": 78, "previous": 80, "search": 83};
+        </script>
+        <script src="js/base.js" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML" defer></script>
+        <script src="assets/mathjaxhelper.js" defer></script>
+        <script src="search/main.js" defer></script>
+
+        <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title" id="exampleModalLabel">Search</h4>
+            </div>
+            <div class="modal-body">
+                <p>
+                    From here you can search these documents. Enter
+                    your search terms below.
+                </p>
+                <form role="form">
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="Search..." id="mkdocs-search-query" title="Type search term here">
+                    </div>
+                </form>
+                <div id="mkdocs-search-results"></div>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div><div class="modal" id="mkdocs_keyboard_modal" tabindex="-1" role="dialog" aria-labelledby="Keyboard Shortcuts Modal" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                <h4 class="modal-title" id="exampleModalLabel">Keyboard Shortcuts</h4>
+            </div>
+            <div class="modal-body">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th style="width: 20%;">Keys</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="help shortcut"><kbd>?</kbd></td>
+                    <td>Open this help</td>
+                  </tr>
+                  <tr>
+                    <td class="next shortcut"><kbd>n</kbd></td>
+                    <td>Next page</td>
+                  </tr>
+                  <tr>
+                    <td class="prev shortcut"><kbd>p</kbd></td>
+                    <td>Previous page</td>
+                  </tr>
+                  <tr>
+                    <td class="search shortcut"><kbd>s</kbd></td>
+                    <td>Search</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="modal-footer">
+            </div>
+        </div>
+    </div>
+</div>
+
+    </body>
+</html>
+
+<!--
+MkDocs version : 1.0.4
+Build Date UTC : 2020-01-10 01:08:07
+-->
