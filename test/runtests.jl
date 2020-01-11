@@ -1,11 +1,8 @@
 using Dialysis
-using Test, Distributions, Statistics, LinearAlgebra, FixedEffectModels
+using Test, DataFrames, Distributions, Statistics, LinearAlgebra, FixedEffectModels
 
 
 # test panel lag
-
-using DataFrames
-
 @testset "panellag" begin
   N = 100
   T = 10

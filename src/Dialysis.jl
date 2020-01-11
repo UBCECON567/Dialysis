@@ -2,7 +2,7 @@ module Dialysis
 
 using DataFrames
 using LinearAlgebra: det, Diagonal, UniformScaling
-using Distributions: pdf, MvNormal
+using Distributions: pdf, MvNormal, pdf!
 using ForwardDiff
 using Statistics: std, var, mean, cov
 using FixedEffectModels
@@ -93,19 +93,15 @@ function locallinear(xpred::AbstractMatrix,
   ypred = Array{eltype(xpred), 2}(undef, size(xpred,1), size(ydata,2))
   # use Scott's rule of thumb
   rootH = n^(-1/(d+4))*vec(std(xdata;dims=1))*bandwidth_multiplier
-  
-  kernel = let dist = MvNormal(rootH)
-    dx->pdf(dist, dx)
-  end  
+  dist = MvNormal(rootH)
   X = hcat(ones(n), xdata)
   w = Array{eltype(xpred), 1}(undef, n)
+  dx = Array{eltype(xdata), 2}(undef, d,n)
   @inbounds for i in 1:size(xpred)[1]
-    @simd for j in 1:size(xdata)[1]
-      @views w[j] = sqrt(kernel((xdata[j,:] - xpred[i,:])))
-    end 
-    #ypred[i,:] = X[i,:]'* ((X'*Diagonal(w)*X) \
-    #(X'*Diagonal(w)*ydata))
-    @views ypred[i,:] = X[i,:]'* ((Diagonal(w)*X) \ (Diagonal(w)*ydata))
+    @views dx .= (xdata' .- xpred[i,:])
+    pdf!(w, dist, dx)
+    w .= sqrt.(w)
+    @views ypred[i,:] = X[i,:]'* ((X'*Diagonal(w)*X) \ (X'*Diagonal(w)*ydata))
   end
   return(ypred)
 end
