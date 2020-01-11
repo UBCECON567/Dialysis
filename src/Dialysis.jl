@@ -93,19 +93,19 @@ function locallinear(xpred::AbstractMatrix,
   ypred = Array{eltype(xpred), 2}(undef, size(xpred,1), size(ydata,2))
   # use Scott's rule of thumb
   rootH = n^(-1/(d+4))*vec(std(xdata;dims=1))*bandwidth_multiplier
-  dist = MvNormal(rootH)
-  function kernel(dx::AbstractVector) # Gaussian kernel
-    pdf(dist, dx)
+  
+  kernel = let dist = MvNormal(rootH)
+    dx->pdf(dist, dx)
   end  
   X = hcat(ones(n), xdata)
   w = Array{eltype(xpred), 1}(undef, n)
-  for i in 1:size(xpred)[1]
-    for j in 1:size(xdata)[1]
-      w[j] = sqrt(kernel((xdata[j,:] - xpred[i,:])))
+  @inbounds for i in 1:size(xpred)[1]
+    @simd for j in 1:size(xdata)[1]
+      @views w[j] = sqrt(kernel((xdata[j,:] - xpred[i,:])))
     end 
     #ypred[i,:] = X[i,:]'* ((X'*Diagonal(w)*X) \
     #(X'*Diagonal(w)*ydata))
-    ypred[i,:] = X[i,:]'* ((Diagonal(w)*X) \ (Diagonal(w)*ydata))
+    @views ypred[i,:] = X[i,:]'* ((Diagonal(w)*X) \ (Diagonal(w)*ydata))
   end
   return(ypred)
 end
@@ -145,7 +145,7 @@ function polyreg(xpred::AbstractMatrix,
       k = 1
       for c in 1:size(xdata,2)
         for j in 1:size(X,2)
-          Xnew[:, k] = X[:,j] .* xdata[:,c]
+          @views Xnew[:, k] = X[:,j] .* xdata[:,c]
           k += 1
         end
       end
