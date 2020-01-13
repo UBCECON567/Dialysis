@@ -128,9 +128,10 @@ understanding the details of the code in this section.
 ```julia
 using Pkg
 try
+  Pkg.activate(".")
   using Dialysis # This assignment itself is in the "Dialysis" package. We will use some of the functions from it. 
 catch
-  Pkg.update()
+  Pkg.activate(".")
   Pkg.add(PackageSpec(url="https://github.com/UBCECON567/Dialysis"))
   using Dialysis
 end
