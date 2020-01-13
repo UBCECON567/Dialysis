@@ -218,21 +218,54 @@ Kernel and Run all Cells” menu option produces the output you want).
 Don’t worry about understanding the details of the code in this section.</p>
 <pre><code class="julia">using Pkg
 try
+  Pkg.activate(&quot;.&quot;)
   using Dialysis # This assignment itself is in the &quot;Dialysis&quot; package. We will use some of the functions from it. 
 catch
-  Pkg.update()
+  Pkg.activate(&quot;.&quot;)
   Pkg.add(PackageSpec(url=&quot;https://github.com/UBCECON567/Dialysis&quot;))
   using Dialysis
 end
-docdir = normpath(joinpath(dirname(Base.pathof(Dialysis)), &quot;..&quot;,&quot;docs&quot;))
-Pkg.activate(docdir)
 </code></pre>
 
 <pre><code>Activating environment at `~/.julia/dev/Dialysis/docs/Project.toml`
 </code></pre>
+<pre><code class="julia">docdir = normpath(joinpath(dirname(Base.pathof(Dialysis)), &quot;..&quot;,&quot;docs&quot;))
+Pkg.activate(docdir)
+</code></pre>
+
+<pre><code>Activating environment at `~/.julia/packages/Dialysis/vdt4h/docs/Project.to
+ml`
+</code></pre>
 <pre><code class="julia">Pkg.instantiate()
 </code></pre>
 
+<pre><code>Updating registry at `~/.julia/registries/General`
+  Updating git-repo `https://github.com/JuliaRegistries/General.git`
+[?25l    Fetching: [&gt;                                        ]  0.0 %[2K
+[?25h Resolving package versions...
+  Updating `~/.julia/packages/Dialysis/vdt4h/docs/Project.toml`
+  [a93c6f00] + DataFrames v0.20.0
+  [31c24e10] + Distributions v0.21.12
+  [e30172f5] + Documenter v0.24.3
+  [997ab1e6] + DocumenterMarkdown v0.2.0
+  [9d5cd8c9] + FixedEffectModels v0.10.3
+  [f6369f11] + ForwardDiff v0.10.8
+  [429524aa] + Optim v0.19.7
+  [91a5bcdd] + Plots v0.28.4
+  [d330b81b] + PyPlot v2.8.2
+  [df47a6cb] + RData v0.7.0
+  [d519eb52] + RegressionTables v0.3.0
+  [295af30f] + Revise v2.5.0
+  [1277b4bf] + ShiftedArrays v1.0.0
+  [f3b207a7] + StatsPlots v0.13.0
+  [112f6efa] + VegaLite v1.0.0
+  [44d3d7a6] + Weave v0.9.1
+  [37e2e46d] + LinearAlgebra 
+  [10745b16] + Statistics 
+  [8dfed614] + Test 
+Error: SystemError: opening file "/home/paul/.julia/packages/Dialysis/vdt4h
+/docs/Project.toml": Permission denied
+</code></pre>
 <h2 id="load-the-data">Load the data<a class="headerlink" href="#load-the-data" title="Permanent link">&para;</a></h2>
 <p>Now let’s get to work. I originally downloaded the data for this problem
 set from
