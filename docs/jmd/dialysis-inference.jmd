@@ -279,7 +279,6 @@ using Pkg
 try
   using Dialysis # This assignment itself is in the "Dialysis" package. We will use some of the functions from it. 
 catch
-  Pkg.update()
   Pkg.add(PackageSpec(url="https://github.com/UBCECON567/Dialysis"))
   using Dialysis
 end
