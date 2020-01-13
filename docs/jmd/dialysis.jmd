@@ -132,11 +132,12 @@ try
   using Dialysis # This assignment itself is in the "Dialysis" package. We will use some of the functions from it. 
 catch
   Pkg.activate(".")
-  Pkg.add(PackageSpec(url="https://github.com/UBCECON567/Dialysis"))
+  Pkg.develop(PackageSpec(url="https://github.com/UBCECON567/Dialysis"))
   using Dialysis
 end
 docdir = normpath(joinpath(dirname(Base.pathof(Dialysis)), "..","docs"))
 Pkg.activate(docdir)
+Pkg.add(PackageSpec(url="https://github.com/UBCECON567/Dialysis"))
 Pkg.instantiate()
 ```
 
