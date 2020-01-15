@@ -98,6 +98,7 @@
         <li class="main active"><a href="#about-this-document">About this document</a></li>
         <li class="main "><a href="#introduction">Introduction</a></li>
             <li><a href="#getting-started">Getting started</a></li>
+            <li><a href="#installing-julia-and-jupyter">Installing Julia and Jupyter</a></li>
             <li><a href="#julia-resources">Julia resources</a></li>
         <li class="main "><a href="#part-i-loading-and-exploring-the-data">Part I: Loading and exploring the data</a></li>
             <li><a href="#loading-packages">Loading packages</a></li>
@@ -162,6 +163,22 @@ markdown or Julia code. If you double click on any of the text cells,
 you can see the markdown that created it. To go back to the formatted
 text, execute the cell by either clicking the play icon on the top of
 the page or typing ctrl and enter together.</p>
+<h2 id="installing-julia-and-jupyter">Installing Julia and Jupyter<a class="headerlink" href="#installing-julia-and-jupyter" title="Permanent link">&para;</a></h2>
+<p>Instead of using <a href="https://vse.syzygy.ca">https://vse.syzygy.ca</a>, you can install Julia and
+Jupyter (the browser based interface that vse.syzygy.ca uses) on your
+own computer. To do so, first download and install Julia from
+<a href="https://julialang.org/">https://julialang.org/</a>. Open Julia. This will give a Julia command
+prompt. Enter <code>]</code> to switch to package manager mode. The command prompt
+should change from a green <code>julia&gt;</code> to a blue <code>(v1.3) pkg&gt;</code>. In package
+mode, type <code>add IJulia</code> and press enter. This install the <a href="https://github.com/JuliaLang/IJulia.jl">IJulia
+package</a> and its dependencies.
+It will take a few minutes. When finished, type <code>Ctrl+c</code> to exit package
+mode. Now at the green <code>julia&gt;</code> prompt, enter</p>
+<p><code>using IJulia jupyterlab()</code></p>
+<p>This will open the Jupyterlab interface in your browser. The first time
+you do it, it will download and install some more dependencies. If you
+close Julia and want to start Jupyterlab again, you only need to repeat
+this last step (it will also be much quicker to start).</p>
 <h2 id="julia-resources">Julia resources<a class="headerlink" href="#julia-resources" title="Permanent link">&para;</a></h2>
 <p>This assignment will try to explain aspects of Julia as needed. However,
 if at some point you feel lost, you may want to consult some of the
@@ -244,6 +261,7 @@ ml`
 /UBCECON567/Dialysis`
 /UBCECON567/Dialysis`
 [?25l[2K[?25h Resolving package versions...
+ Installed ForwardDiff ─ v0.10.9
   Updating `~/.julia/packages/Dialysis/UxWtR/docs/Project.toml`
   [a93c6f00] + DataFrames v0.20.0
   [9b71aec8] + Dialysis v0.1.0 #master (https://github.com/UBCECON567/Dialy
@@ -252,7 +270,7 @@ sis)
   [e30172f5] + Documenter v0.24.3
   [997ab1e6] + DocumenterMarkdown v0.2.0
   [9d5cd8c9] + FixedEffectModels v0.10.3
-  [f6369f11] + ForwardDiff v0.10.8
+  [f6369f11] + ForwardDiff v0.10.9
   [429524aa] + Optim v0.19.7
   [91a5bcdd] + Plots v0.28.4
   [d330b81b] + PyPlot v2.8.2
