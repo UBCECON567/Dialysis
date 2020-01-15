@@ -174,7 +174,9 @@ mode, type <code>add IJulia</code> and press enter. This install the <a href="ht
 package</a> and its dependencies.
 It will take a few minutes. When finished, type <code>Ctrl+c</code> to exit package
 mode. Now at the green <code>julia&gt;</code> prompt, enter</p>
-<p><code>using IJulia jupyterlab()</code></p>
+<pre><code>using IJulia
+jupyterlab()
+</code></pre>
 <p>This will open the Jupyterlab interface in your browser. The first time
 you do it, it will download and install some more dependencies. If you
 close Julia and want to start Jupyterlab again, you only need to repeat
@@ -261,7 +263,7 @@ ml`
 /UBCECON567/Dialysis`
 /UBCECON567/Dialysis`
 [?25l[2K[?25h Resolving package versions...
- Installed ForwardDiff ─ v0.10.9
+ Installed DataStructures ─ v0.17.9
   Updating `~/.julia/packages/Dialysis/UxWtR/docs/Project.toml`
   [a93c6f00] + DataFrames v0.20.0
   [9b71aec8] + Dialysis v0.1.0 #master (https://github.com/UBCECON567/Dialy
