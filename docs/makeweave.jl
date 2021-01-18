@@ -26,4 +26,4 @@ if (isfile("build/temp.md"))
   rm("build/temp.md")
 end
 
-Pkg.rm("Dialysis")
+#Pkg.rm("Dialysis")

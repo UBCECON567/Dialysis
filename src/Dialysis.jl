@@ -13,7 +13,7 @@ export panellag, locallinear, loaddata,
   partiallinearIV,
   errors_gm, objective_gm, polyreg,
   partiallinear, clustercov
-  
+
 
 """
     panellag(x::Symbol, data::AbstractDataFrame, id::Symbol, t::Symbol,
@@ -21,7 +21,7 @@ export panellag, locallinear, loaddata,
 
 Create lags of variables in panel data.
 
-# Arguments 
+# Arguments
 
 - `x` variable to create lag of
 - `data` DataFrame containing `x`, `id`, and `t`
@@ -38,9 +38,9 @@ Create lags of variables in panel data.
 """
 function panellag(x::Symbol, data::AbstractDataFrame, id::Symbol, t::Symbol,
                    lags::Integer=1)
-  if (!issorted(data, (id, t)))
+  if (!issorted(data, [id, t]))
     @warn "data is not sorted, panellag() will be more efficient with a sorted DataFrame"
-    p = sortperm(data, (id, t))
+    p = sortperm(data, [id, t])
     df = data[p,:]
   else
     p = nothing
@@ -50,7 +50,7 @@ function panellag(x::Symbol, data::AbstractDataFrame, id::Symbol, t::Symbol,
   tlag = ShiftedArrays.lag(df[!,t], lags)
   xlag = ShiftedArrays.lag(df[!,x], lags)
   xlag = copy(xlag)
-  xlag[ (typeof.(tlag).==Missing) .|
+  xlag[ ismissing.(tlag) .|
         (tlag .!= df[!,t].-lags) .|
         (idlag .!= df[!,id]) ] .= missing
   if (p == nothing)
@@ -62,6 +62,18 @@ function panellag(x::Symbol, data::AbstractDataFrame, id::Symbol, t::Symbol,
   end
 end
 
+function panellag(x::AbstractArray, id::AbstractVector, t::AbstractVector,
+                  lags::Integer=1)
+  idlag= ShiftedArrays.lag(id, lags)
+  tlag = ShiftedArrays.lag(t, lags)
+  xlag = copy(ShiftedArrays.lag(x, lags))
+  xlag[ ismissing.(tlag) .|
+        (tlag .!= t.-lags) .|
+        (idlag .!= id) ] .= missing
+  return(xlag)
+end
+
+
 """
 
     locallinear(xpred::AbstractMatrix,
@@ -70,7 +82,7 @@ end
 
 Computes local linear regression of ydata on xdata. Returns predicted
 y at x=xpred. Uses Scott's rule of thumb for the bandwidth and a
-Gaussian kernel. xdata should not include an intercept. 
+Gaussian kernel. xdata should not include an intercept.
 
 # Arguments
 
@@ -114,7 +126,7 @@ end
               ydata::AbstractMatrix; degree=1)
 
 Computes  polynomial regression of ydata on xdata. Returns predicted
-y at x=xpred. 
+y at x=xpred.
 
 # Arguments
 
@@ -183,8 +195,9 @@ end
 
 """
 function partiallinear(y::Symbol, x::Array{Symbol, 1},
+                       controls::Array{Symbol,1},
                        data::DataFrame;
-                       npregress::Function=polyreg, 
+                       npregress::Function=polyreg,
                        clustervar::Symbol=Symbol())
 
 Estimates a partially linear model. That is, estimate
@@ -202,9 +215,9 @@ Assuming that E[ϵ|x, controls] = 0.
 - `controls` list of control variables entering f
 - `data` DataFrame where all variables are found
 - `npregress` function for estimating E[w|x] nonparametrically. Used
-   to partial out E[y|controls] and E[x|controls] and E[q|controls]. 
+   to partial out E[y|controls] and E[x|controls] and E[q|controls].
 - `clustervar` symbol specifying categorical variable on which to
-   cluster when calculating standard errors 
+   cluster when calculating standard errors
 
 # Returns
 
@@ -218,65 +231,68 @@ Uses orthogonal (with respect to f) moments to estimate β. In particular, it us
 0 = E[(y - E[y|controls]) - (x - E[x|controls])β)*(x - E[x|controls])]
 ```
 
-to estimate β. In practice this can be done by regressing 
+to estimate β. In practice this can be done by regressing
 (y - E[y|controls]) on (x - E[x|controls]). FixedEffectModels is used
 for this regression. Due to the orthogonality of the moment condition
-the standard errors on β will be the same as if  
+the standard errors on β will be the same as if
 E[y|controls] and E[x|controls] were observed (i.e. FixedEffectModels
 will report valid standard errors)
 """
 function partiallinear(y::Symbol, x::Array{Symbol, 1},
-                       controls::Array{Symbol,1}, 
+                       controls::Array{Symbol,1},
                        data::DataFrame;
                        npregress::Function=polyreg,
                        clustervar::Symbol=Symbol())
   vars = [y, x..., controls...]
-  inc = completecases(data[vars])
-  YX = disallowmissing(convert(Matrix, data[[y, x...]][inc,:]))
-  W = disallowmissing(convert(Matrix, data[controls][inc,:]))
+  inc = completecases(data[!,vars])
+  YX = disallowmissing(convert(Matrix, data[!,[y, x...]][inc,:]))
+  W = disallowmissing(convert(Matrix, data[!,controls][inc,:]))
   fits = npregress(W,W,YX)
   Resid = YX - fits
   df = DataFrame(Resid, [y, x...])
   if (clustervar==Symbol())
-    est=reg(df, @eval @formula($(y) ~ $(Meta.parse(reduce((a,b) -> "$a + $b",
-                                                          x))) ))
+    est=reg(df, @eval @formula($(y) ~ $(Meta.parse(String(reduce((a,b) -> "$a + $b",
+                                                          x)))) ))
   else
-    df[clustervar] = data[clustervar][inc]
-    est=reg(df, @eval @formula($(y) ~ $(Meta.parse(reduce((a,b) -> "$a + $b", x)))
-                               , vcov=cluster($(clustervar)) ))
+    df[!,clustervar] = data[!,clustervar][inc]
+    est=reg(df, @eval @formula($(y) ~ $(Meta.parse(String(reduce((a,b) -> "$a + $b", x)))))
+            , Vcov.cluster(clustervar) )
   end
-  return(est)
+  eyex = Matrix{Union{Missing,eltype(fits)}}(undef, nrow(data), length(x)+1)
+  eyex .= missing
+  eyex[inc,:] .= fits
+  return(est, eyex)
 end
 
 """
       partiallinearIV(y::Symbol, q::Symbol, z::Symbol,
                       controls::Array{Symbol,1}, data::DataFrame;
                       npregress::Function)
- 
+
 Estimates a partially linear model using IV. That is, estimate
 
 y = αq + Φ(controls) + ϵ
 
-using z as an instrument for q with first stage 
+using z as an instrument for q with first stage
 
 q = h(z,controls) + u
 
-It assumes that E[ϵ|z, controls] = 0. 
+It assumes that E[ϵ|z, controls] = 0.
 
 Uses orthogonal (wrt Φ and other nuisance functions) moments for
-estimating α. In particular, it uses 
+estimating α. In particular, it uses
 
 0 = E[(y - E[y|controls] - α(q - E[q|controls]))*(E[q|z,controls] - E[q|controls])]
 
 See section 4.2 (in particular footnote 8) of Chernozhukov,
 Chetverikov, Demirer, Duflo, Hansen, Newey, and Robins (2018) for more
-information. 
+information.
 
 In practice α can be estimated by an iv regression
 of (y - E[y|controls]) on (q - E[q|controls]) using (E[q|z,controls] -
 E[q|controls]) as an instrument. FixedEffectModels is used
 for this regression. Due to the orthogonality of the moment condition,
-the standard error on α will be the same as if  
+the standard error on α will be the same as if
 E[y|controls] and E[q|controls] were observed (i.e. FixedEffectModels
 will report valid standard errors)
 
@@ -312,15 +328,15 @@ function partiallinearIV(y::Symbol, q::Symbol, z::Array{Symbol,1},
   fits = npregress(X,X,hcat(Y,qhat))
   ey = Y - fits[:,1]
   eq = Q - fits[:,2]
-  ez = qhat - fits[:,2]  
+  ez = qhat - fits[:,2]
   α = (ey'*ez)/(eq'*ez)
   df = DataFrame([ey,eq,vec(ez)], [:y, :q, :z])
   est = reg(df, @formula(y ~ (q ~ z)))
   #Φi = npregress(X, X, reshape(Y - α*Q, length(Y),1))
   Φi = fits[:,1] - α*fits[:,2]
-  
+
   # put missings back in
-  if (sum(inc) != length(inc)) 
+  if (sum(inc) != length(inc))
     Φ = Array{Union{Missing, eltype(Φi)},1}(undef, length(data[y]))
     Φ .= missing
     Φ[inc] = Φi
@@ -333,7 +349,7 @@ function partiallinearIV(y::Symbol, q::Symbol, z::Array{Symbol,1},
       eyqz[inc,3] = ez
     else
       eyqz= Array{eltype(ey),2}(undef,0,0)
-    end    
+    end
   else
     Φ = Φi
     if (parts)
@@ -412,7 +428,7 @@ end
                       instruments::Array{Symbol,1}, data::DataFrame
                       ; W=UniformScaling(1.),
                       npregress::Function=(xp,xd,yd)->polyreg(xp,xd,yd,degree=1))
-  
+
 
 
 """
@@ -431,7 +447,7 @@ function objective_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
   dta[!,:ezlag] = panellag(:ez, dta, id, t, 1)
   function createparts(datain,β,α)
     df = deepcopy(datain)
-    df[!,:ω] = df[!,Φ] - df[!,k]*β[1] - df[!,l] * β[2];    
+    df[!,:ω] = df[!,Φ] - df[!,k]*β[1] - df[!,l] * β[2];
     df[!,:ωlag] = panellag(:ω, df, id, t);
     df[!,:eΦ] = df[!,y] - α*df[!,q] - df[!,Φ];
     df[!,:eΦlag] = panellag(:eΦ, df, id, t);
@@ -456,7 +472,7 @@ function objective_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
 
     eqlag = disallowmissing(df[inc,:eqlag])
     dGα = mean( (-resid[:,2] + eqlag.*dEYQZ[:,1]).*ez, dims=1)
-    gi = gi -  
+    gi = gi -
       ((df[inc,:eΦlag].*df[inc,:ezlag])/mean(skipmissing(df[inc,:eqlag].*df[inc,:ezlag]))
        )*dGα
   end
@@ -469,16 +485,16 @@ function objective_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
     N = size(gi,1)
   else
     N = length(unique(data[inc,clusterid]))
-  end  
+  end
   function Σ(gi)
     if (clusterid==nothing)
       V = cov(gi)
     else
-      V = clustercov(gi, data[inc,clusterid])      
+      V = clustercov(gi, data[inc,clusterid])
     end
     return(V, N)
   end
-  
+
   function cue(β::AbstractVector, α::Real)
     gi = momenti(β,α)
     (V, n) = Σ(gi)
@@ -489,14 +505,14 @@ function objective_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
   return(obj=obj, momenti=momenti, cue=cue, Σ=Σ)
 end
 
-""" 
+"""
     clustercov(x::Array{Real,2}, clusterid)
 
 Compute clustered, heteroskedasticity robust covariance matrix
 estimate for Var(∑ x). Assumes that observations with different
 clusterid are independent, and observations with the same clusterid
 may be arbitrarily correlated. Uses number of observations - 1 as the
-degrees of freedom.  
+degrees of freedom.
 
 # Arguments
 
@@ -506,7 +522,7 @@ degrees of freedom.
 # Returns
 - `V` dimension of x by dimension of x matrix
 """
-function clustercov(x::Array{<:Number,2}, clusterid) 
+function clustercov(x::Array{<:Number,2}, clusterid)
   ucid = unique(clusterid)
   V = zeros(eltype(x),size(x,2),size(x,2))
   e = x .- mean(x, dims=1)
@@ -517,12 +533,12 @@ function clustercov(x::Array{<:Number,2}, clusterid)
   V = V./(length(ucid)-1)
 end
 
-function clustercov(x::Array{<:Any,1}, clusterid) 
+function clustercov(x::Array{<:Any,1}, clusterid)
   clustercov(reshape(x,length(x),1),clusterid)
 end
 
 function clustercov(x::Array{<:Union{Missing,<:Number},2},
-                    clusterid) 
+                    clusterid)
   df = hcat(DataFrame(x), DataFrame([clusterid],[:cid]))
   inc = findall(completecases(df))
   clustercov(disallowmissing(convert(Matrix,df[inc,1:size(x,2)])),
@@ -530,6 +546,3 @@ function clustercov(x::Array{<:Union{Missing,<:Number},2},
 end
 
 end # module
-
-
-
