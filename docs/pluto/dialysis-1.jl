@@ -40,7 +40,7 @@ using Statistics, StatsBase # for mean, var, etc
 # ╔═╡ b443a46e-5fa3-11eb-3e71-dfd0683dc6e9
 begin
   using StatsPlots , Plots
-  Plots.gr(fmt="png")
+  Plots.gr(fmt="png") # default graphics format inside Pluto is svg. An svg with so many points will cause your browser to become unresponsive!
 end
 
 # ╔═╡ d5554696-5f6f-11eb-057f-a79641cf483a
@@ -191,8 +191,8 @@ Data for FY20XX" zip files at [data.cms.gov](https://data.cms.gov/browse?q=dialy
 
 # ╔═╡ 95ad1f3c-5f79-11eb-36fb-1b384c84317c
 md"""
-We will begin our analysis with some exploratory statistics and
-figures. There are at least two reasons for this. First, we want to
+We will begin our analysis with some data cleaning. Then we will create some  exploratory statistics and figures. There are at least two reasons for this. 
+First, we want to
 check for any anomalies in the data, which may indicate an error in
 our code, our understanding of the data, or the data itself. Second,
 we should try to see if there are any striking patterns in the data
@@ -208,14 +208,20 @@ md"""
 
 ### Data Cleaning
 
-From the above, we can see that the data has some problems. It appears that "." is used to indicate missing. We should replace these with `missing`. Also, the `eltype` of most columns is `String.` We should convert to numeric types where appropriate. Similarly, some variables that are `String` would be better as `Categorical` variables.
+From the above, we can see that the data has some problems. It appears that "." is used to indicate missing. We should replace these with `missing`. Also, the `eltype` of most columns is `String.` We should convert to numeric types where appropriate. 
 
-Although not apparent in the `describe(dialysis)` output, it is also worth mentioning the unique format of the data. The data is distributed with one file per fiscal year. Each fiscal year file reports the values of most variables in calendar years 6 to 4 years ago. We need to convert things to have a single calendar year value for each variable.
+!!! note "Types"
+    Every variable in Julia has a [type](https://docs.julialang.org/en/v1/manual/types/), which determines what information the variable can store. You can check the type of a variable with `typeof(variable)`. The columns of our `dialysis` DataFrame will each be some array-like type that can hold some particular types of elements. For examble, `typeof(dialysis[!,:nursePT])` (or equivalently `typeof(dialysis.nursePT)` should currently be `Array{String, 1}`. This means that right now the nursePT column can only hold strings. Therefore trying to assign an integer to an element of the column like `dialysis[2, :nursePT] = 0` will cause an error. If we want to convert the element type of the column, we have to assign the column to an entirely new array. We will do this below. 
+
+!!! note "Missing"
+    [Julia includes a special type and value to represent missing data](https://docs.julialang.org/en/v1/manual/missing/). The element type of arrays that include `missing` will be `Union{Missing, OTHERTYPE}` where `OTHERTYPE` is something like `String` or `Float64`. The `Union` means each element of the array can hold either type `Missing` or `OTHERTYPE`. Some functions will behave reasonably when they encounter `missing` values, but many do not. As a result, we will have to be slightly careful with how we handle `missing` values.
+
+Although not apparent in the `describe(dialysis)` output, it is also worth mentioning the unique format of the data. The data is distributed with one file per fiscal year. Each fiscal year file reports the values of most variables in calendar years 6 to 2 years ago. We need to convert things to have a single calendar year value for each variable.
 
 #### Type Conversion
 
 We begin by converting types. We will use [regular expressions](https://docs.julialang.org/en/v1/manual/strings/#Regular-Expressions) to try identify columns whose strings all look like integers or all look like floating point numbers.
-Many programming languages have ways to work with regular expressions. It is worth remembering regular expressions are a useful tool for parsing strings, but beyond that do not worry about the code below too much.
+Many programming languages have ways to work with regular expressions. It is worth remembering regular expressions are a useful tool for parsing strings, but beyond that do not worry about the dark art of regular expressions too much.
 """
 
 # ╔═╡ c642b578-5f77-11eb-1346-15a35500e61f
@@ -228,6 +234,10 @@ function guesstype(x::AbstractArray{T}) where T <:Union{String,Missing}
 	# r"" creates a regular expression
 	# regular expressions are useful for matching patterns in strings
 	# This regular expression matches strings that are either just "." or begin with - or a digit and are followed by 0 or more additional digits
+	#
+	# all(array) is true if all elements of the array are true
+	#
+	# skipmissing(x) creates a iterator over the non-missing elements of x (this iterator will behave like an array of the non-missing elements of x)
 	if all(occursin.(r"(^\.$)|(^(-|)\d+)$",skipmissing(x)))
 		return Int
 	elseif all(occursin.(r"(^\.$)|(^(-|\d)\d*(\.|)\d*$)",skipmissing(x)))
@@ -243,6 +253,19 @@ end
 
 # ╔═╡ 3d6cf930-5f80-11eb-04a1-0f608e26886b
 guesstype(x) = eltype(x)
+
+# ╔═╡ c7192aba-5fe8-11eb-1d50-81cb0f959b4a
+md"""
+!!! info "Broadcasting"
+    It is very common to want to apply a function to each element of an array. We call this broadcasting. To broadcast a function, put a `.` between the function name and `(`. Thus, `occursin.(r"(^\.$)|(^(-|)\d+)$",X)`  produces the same result as
+    ```julia
+    out = Array{Bool, 1}(undef, length(X))
+    for i in 1:length(x)
+      out[i] = occursin(r"(^\.$)|(^(-|)\d+)$",X[i])
+    end    
+    ```
+
+"""
 
 # ╔═╡ 600c6368-5f80-11eb-24b1-c35a333d7164
 md"""
@@ -265,13 +288,43 @@ Again using multiple dispatch, we can create a function to convert the types of 
 # ╔═╡ 81b220c8-5f82-11eb-141a-53ed12752330
 converttype(x) = x
 
+# ╔═╡ 1f577cac-5feb-11eb-19c7-2ff4856aee9d
+md"""
+!!! info "Adding Methods to Existing Functions"
+    `Base.parse` is a function included in Julia for converting strings to numeric types.
+    We want to use parse to convert the types of our DataFrame columns.
+    However, for some columns, we want to leave strings as strings, and for others we want to convert strings to dates.
+    The builtin parse function only converts strings to numbers.
+    However, we can define additional parse methods and use multiple dispatch to handle these cases. 	
+
+    This approach will make the `converttype` function defined below very short and simple.
+"""
+
 # ╔═╡ 3f871682-5f86-11eb-2c50-971aa2d55aec
 begin
-	# parse is usually for converting strings to numeric types
-	# to use the same converttype function regardless of whether guesstype is numeric or a string, we need a parse that "converts" a string to string
+	# we need a parse that "converts" a string to string
 	Base.parse(::Type{String}, x::String) = x
+	
+	# a version of parse that works for the date formats in this data
 	Base.parse(::Type{Dates.Date}, x::String) = occursin(r"\D{3}",x) ? Date(x, "dduuuyyyyy") : Date(x,"m/d/y")
 end
+
+# ╔═╡ 34fa745c-5fec-11eb-3c3c-67eba7bffa6e
+md"""
+!!! info "Ternary Operator"
+    In `converttype`, we use the [ternary operator](https://docs.julialang.org/en/v1/base/base/#?:), which is just a concise way to write an if-else statement.
+    ```julia
+    boolean ? value_if_true : value_if_false
+    ```
+"""
+
+# ╔═╡ 985c4280-5fec-11eb-362b-21e463e63f8d
+md"""
+!!! info "Array Comprehension"
+    In `converttype`, we use an [array comprehension](https://docs.julialang.org/en/v1/manual/arrays/#man-comprehensions) to create the return value. Comprehensions  are a concise and convenient way to create new arrays from existing ones. 
+
+    [Generator expressions](https://docs.julialang.org/en/v1/manual/arrays/#Generator-Expressions) are a related concept. 
+"""
 
 # ╔═╡ 7c756c72-5f83-11eb-28d5-7b5654c51ea3
 function converttype(x::AbstractArray{T}) where T <: Union{Missing, String}
@@ -290,7 +343,9 @@ converttype([".","315", "-35.8"])
 
 # ╔═╡ a3452e58-5f85-11eb-18fb-e5f00173defb
 clean1 = let
-	clean1 = mapcols(converttype, dialysis)
+	clean1 = mapcols(converttype, dialysis) # apply converttype to each column of dialysis
+	
+	# fix the identifier strings. some years they're listed as ="IDNUMBER", others, they're just IDNUMBER
 	clean1.provfs = replace.(clean1.provfs, "="=>"")
 	clean1.provfs = replace.(clean1.provfs,"\""=>"")
 	clean1
@@ -371,7 +426,7 @@ The labor related variables all end in `FT` (for full-time) or `PT` (for part-ti
 """
 
 # ╔═╡ 62f7ee18-5f9d-11eb-1b6c-4dabc3f9d787
-filter(x->occursin.(r"(F|P)T$",x.first), datadic)
+filter(x->occursin.(r"(F|P)T$",x.first), datadic) # list variables ending with PT or FT
 
 # ╔═╡ 656f7c7e-5f9d-11eb-041d-a903e70f6843
 md"""
@@ -429,7 +484,7 @@ md"""
 unique(clean2.owner_f)
 
 # ╔═╡ 51012006-5f9f-11eb-1c62-3595a0dbd003
-
+clean2.forprotit = (clean2.owner_f .== "For Profit") # modify if needed
 
 # ╔═╡ 9180dc5c-5f9f-11eb-1d51-cb0516deb7b5
 countmap(clean2.chainnam)
@@ -441,20 +496,75 @@ begin
 	# do something similar for davita and any other chains you think are important
 end
 
-# ╔═╡ 1b48f13c-5fa1-11eb-1333-974ad36793a5
-
-
 # ╔═╡ 0b4f51ca-5fa1-11eb-1466-4959a7e056ae
 md"""
 
 #### State Inspection Rates
+
+State inspection rates are a bit more complicated to create.
 """
+
+# ╔═╡ 5c8d4f8e-5ff3-11eb-0c55-d1a3795358e3
+clean3 = let 
+	# compute days since most recent inspection
+	inspect = combine(groupby(clean1, :provfs), 
+		:surveydt_f => x->[unique(skipmissing(x))])
+	rename!(inspect, [:provfs, :inspection_dates])
+	df=innerjoin(clean2, inspect, on=:provfs)
+	@assert nrow(df)==nrow(clean2)
+	function dayssince(year, dates) 
+		today = Date(year, 12, 31)
+		past = [x.value for x in today .- dates if x.value>=0]
+		if length(past)==0
+			return(missing)
+		else
+			return(minimum(past))
+		end
+	end
+	
+	df=transform(df, [:year, :inspection_dates] => (y,d)->dayssince.(y,d))	
+	rename!(df, names(df)[end] =>:days_since_inspection)
+	df[!,:inspected_this_year] = ((df[!,:days_since_inspection].>=0) .&
+		(df[!,:days_since_inspection].<365))
+	
+	# then take the mean by state
+	stateRates = combine(groupby(df, [:state, :year]),
+                	:inspected_this_year => 
+			(x->mean(skipmissing(x))) => :state_inspection_rate)
+	df = innerjoin(df, stateRates, on=[:state, :year])
+	@assert nrow(df)==nrow(clean2)
+	df
+end
 
 # ╔═╡ 1d6b90b2-5fa1-11eb-0b52-b36c3642539a
 md"""
 #### Competitors
 
+Creating the number of competitors in the same city is somewhat
+similar. Note that @grieco2017 use the number of competitors in the
+same HSA, which would be preferrable. However, this dataset does not
+contain information on HSAs. If you are feeling ambitious, you could
+try to find data linking city, state to HSA, and use that to calculate
+competitors in the same HSA.
+
 """
+
+# ╔═╡ 00c8ef48-5ff8-11eb-1cf3-f7d391228226
+clean4=let 
+	df = clean3
+	upcase(x) = Base.uppercase(x)
+	upcase(m::Missing) = missing
+	df[!,:provcity] = upcase.(df[!,:provcity])
+	comps = combine(groupby(df,[:provcity,:year]),
+    	       		:dy => 
+			(x -> length(skipmissing(x).>=0.0)) => 
+			:competitors
+           )
+	comps = comps[.!ismissing.(comps.provcity),:]
+ 	df = outerjoin(df, comps, on = [:provcity,:year], matchmissing=:equal)	
+	@assert nrow(df)==nrow(clean3)
+	df
+end
 
 # ╔═╡ 28b76e70-5fa1-11eb-31de-d12718c8de03
 md"""
@@ -481,7 +591,7 @@ let
   		# The ... is called the splat operator
   		DataFrame([vars [[f(skipmissing(df[!,v])) for v in vars] for f in funcs]...], colnames)
 	end
-	summaryTable(clean2, vars)
+	summaryTable(clean4, vars)
 end
 
 # ╔═╡ 7bfe6fee-5fa3-11eb-3f31-59a77a78f035
@@ -502,32 +612,32 @@ StatPlots.jl, Plots.jl, or VegaLite.jl github pages for more examples.
 begin
     vars = [:dy, :hdy, :phd]
     inc = completecases(clean2[!,vars]) # missings will mess up corrplot
-    @df clean2[inc,vars] corrplot(cols(vars))
+    @df clean3[inc,vars] corrplot(cols(vars))
 end
 
 # ╔═╡ eca590a6-5fa3-11eb-383c-095e63136428
-function yearPlot(var; df=clean2)
+function yearPlot(var; df=clean4)
   data = df[completecases(df[!,[:year, var]]),:]
   scatter(data[!,:year], data[!,var], alpha=0.1, legend=:none,
           markersize=3, markerstrokewidth=0.0)
-  yearmeans = by(data, :year,
-                 mean = var => x->mean(skipmissing(x)),
-                 q01  = var => x->quantile(skipmissing(x), 0.01),
-                 q10  = var => x->quantile(skipmissing(x), 0.1),
-                 q25  = var => x->quantile(skipmissing(x), 0.25),
-                 q50  = var => x->quantile(skipmissing(x), 0.50),
-                 q75  = var => x->quantile(skipmissing(x), 0.75),
-                 q90  = var => x->quantile(skipmissing(x), 0.9),
-                 q99  = var => x->quantile(skipmissing(x), 0.99))
+	q = [0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
+  yearmeans = combine(groupby(data, :year),
+               var => (x->[(mean(skipmissing(x)),
+						  quantile(skipmissing(x),q)...)])  => 
+		["mean", (x->"q$(Int(100*x))").(q)...])
+	sort!(yearmeans,:year)
   @df yearmeans plot!(:year, :mean, colour = ^(:black), linewidth=4)
-  @df yearmeans plot!(:year, cols(3:ncol(yearmeans)),
+  fig = @df yearmeans plot!(:year, cols(3:ncol(yearmeans)),
                       colour = ^(:red), alpha=0.4, legend=:none,
                       xlabel="year", ylabel=String(var))
+  return(fig)
 end
-yearPlot(:labor)
 
 # ╔═╡ 12a3d1a0-5fa4-11eb-11a3-297c335010c7
-yearPlot(:labor)
+let 
+	fig=yearPlot(:labor)
+	plot!(fig, ylim=[0,50]) # adjust y-axis range
+end
 
 # ╔═╡ 1eaaaf1e-5fa4-11eb-1338-49f1dd9aa2dc
 md"""
@@ -536,8 +646,12 @@ average labor each year. The red lines are the 0.01, 0.1, 0.25, 0.5,
 0.75, 0.9, and 0.99 quantiles conditional on year.
 """
 
-# ╔═╡ 23a6d36c-5fa4-11eb-0594-3bf45e152a5e
+# ╔═╡ c09dd940-5ff9-11eb-0db4-bf9f169c5508
+md"""
 
+!!! question
+    Please hand in both your modified `dialysis-1.jl` and an html export of it. Use the triangle and circle icon at the top of the page to export it.
+"""
 
 # ╔═╡ Cell order:
 # ╟─d5554696-5f6f-11eb-057f-a79641cf483a
@@ -555,12 +669,16 @@ average labor each year. The red lines are the 0.01, 0.1, 0.25, 0.5,
 # ╟─cfaabda0-5f79-11eb-17e4-a7cd045681da
 # ╠═c642b578-5f77-11eb-1346-15a35500e61f
 # ╠═3d6cf930-5f80-11eb-04a1-0f608e26886b
+# ╟─c7192aba-5fe8-11eb-1d50-81cb0f959b4a
 # ╟─600c6368-5f80-11eb-24b1-c35a333d7164
 # ╠═bcaf264a-5f77-11eb-2bf5-1bd3c16dbce6
 # ╠═46da23f6-5f82-11eb-2c42-dbcf1c09192e
 # ╟─65d2d0e8-5f85-11eb-2e4b-b3e561a1a63c
 # ╠═81b220c8-5f82-11eb-141a-53ed12752330
+# ╟─1f577cac-5feb-11eb-19c7-2ff4856aee9d
 # ╠═3f871682-5f86-11eb-2c50-971aa2d55aec
+# ╟─34fa745c-5fec-11eb-3c3c-67eba7bffa6e
+# ╟─985c4280-5fec-11eb-362b-21e463e63f8d
 # ╠═7c756c72-5f83-11eb-28d5-7b5654c51ea3
 # ╟─8c8cab5a-5f85-11eb-1bb0-e506d437545d
 # ╠═57324928-5f83-11eb-3e9f-4562c8b03cd4
@@ -584,9 +702,10 @@ average labor each year. The red lines are the 0.01, 0.1, 0.25, 0.5,
 # ╠═51012006-5f9f-11eb-1c62-3595a0dbd003
 # ╠═9180dc5c-5f9f-11eb-1d51-cb0516deb7b5
 # ╠═7b8cb088-5f9f-11eb-3ec1-056ae31d5400
-# ╠═1b48f13c-5fa1-11eb-1333-974ad36793a5
-# ╠═0b4f51ca-5fa1-11eb-1466-4959a7e056ae
-# ╠═1d6b90b2-5fa1-11eb-0b52-b36c3642539a
+# ╟─0b4f51ca-5fa1-11eb-1466-4959a7e056ae
+# ╠═5c8d4f8e-5ff3-11eb-0c55-d1a3795358e3
+# ╟─1d6b90b2-5fa1-11eb-0b52-b36c3642539a
+# ╠═00c8ef48-5ff8-11eb-1cf3-f7d391228226
 # ╟─28b76e70-5fa1-11eb-31de-d12718c8de03
 # ╠═a4ae6fb8-5fa1-11eb-1113-a565d047be6d
 # ╟─7bfe6fee-5fa3-11eb-3f31-59a77a78f035
@@ -594,5 +713,5 @@ average labor each year. The red lines are the 0.01, 0.1, 0.25, 0.5,
 # ╠═aaf4b772-5fa3-11eb-298f-87459c41c4f4
 # ╠═eca590a6-5fa3-11eb-383c-095e63136428
 # ╠═12a3d1a0-5fa4-11eb-11a3-297c335010c7
-# ╠═1eaaaf1e-5fa4-11eb-1338-49f1dd9aa2dc
-# ╠═23a6d36c-5fa4-11eb-0594-3bf45e152a5e
+# ╟─1eaaaf1e-5fa4-11eb-1338-49f1dd9aa2dc
+# ╟─c09dd940-5ff9-11eb-0db4-bf9f169c5508
