@@ -46,57 +46,32 @@ This assignment will reproduce some of the results of @grieco2017.
 ## Getting started
 
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/UBCECON567/Dialysis.git/HEAD)
 
-[https://vse.syzygy.ca](https://vse.syzygy.ca) provides a convenient
-browser based interface to Julia. Open it and log in. You now need to
-upload the [Jupyter notebook for this assignment](dialysis.ipynb) and
-open it. You could download it from that link and then upload to vse.syzygy.ca.
-Alternatively, open a terminal in syzygy (File -> New -> Terminal). This will open a Linux
-shell in your browser. To download the notebook to syzygy enter
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/UBCECON567/Dialysis.git/gh)
 
-`
-wget https://ubcecon567.github.io/Dialysis/dialysis.ipynb
-`
-
-
-Clicking on the folder icon near the top left of the screen opens a
-file browser panel. Use it to open the `dialysis.ipynb` notebook. I
-recommend renaming your copy of this notebook. You can rename files by
-right clicking in the file browser panel. Now open your copy of the
-notebook.
-
-Notebooks consist of a series of "cells" of either text written in
-markdown or Julia code. If you double click on any of the text cells,
-you can see the markdown that created it. To go back to the formatted
-text, execute the cell by either clicking the play icon on the top of
-the page or typing ctrl and enter together.
 
 ## Installing Julia and Jupyter
 
-Instead of using [https://vse.syzygy.ca](https://vse.syzygy.ca), you
-can install Julia and Jupyter (the browser based interface that
-vse.syzygy.ca uses) on your own computer. To do so, first download and
-install Julia from
-[https://julialang.org/](https://julialang.org/). Open Julia. This
-will give a Julia command prompt. Enter `]` to switch to package
-manager mode. The command prompt should change from a green `julia>`
-to a blue `(v1.3) pkg>`. In package mode, type `add IJulia` and press
-enter. This install the [IJulia
-package](https://github.com/JuliaLang/IJulia.jl) and its
+You can install Julia and Pluto on your own computer. To do so, first
+download and install Julia from
+[https://julialang.org/](https://julialang.org/). I recommend the
+choosing the current stable release.
+
+After installing, open Julia. This will give a Julia command
+prompt. Enter `]` to switch to package manager mode. The command
+prompt should change from a green `julia>` to a blue `(@v1.5) pkg>`. In
+package mode, type `add Pluto` and press enter. This install the
+[Pluto.jl package](https://github.com/fonsp/Pluto.jl) and its
 dependencies. It will take a few minutes. When finished, type `Ctrl+c`
 to exit package mode. Now at the green `julia>` prompt, enter
 
 ```
-using IJulia
-jupyterlab()
+using Pluto
+Pluto.run()
 ```
 
-This will open the Jupyterlab interface in your browser. The first
-time you do it, it will download and install some more
-dependencies. If you close Julia and want to start Jupyterlab again,
-you only need to repeat this last step (it will also be much quicker
-to start).
+This will open the Pluto interface in your browser. If you close Julia
+and want to start Pluto again, you only need to repeat this last step.
 
 
 ## Julia resources
@@ -143,24 +118,13 @@ Like many programming environments (R, Python, etc), Julia relies on
 packages for lots of its functionality.The following code will
 download and install all the packages required for this
 assignment (but the packages will still need to be loaded with `using
-...`). Execute this cell. It will take some time. While the cell
-is running, there will be a `[*]` to the left of it. This will change
-to `[1]` (or some other number) after the cell is finished
-running. The number indicates the order in which the cell was
-executed. You can execute cells out of order. This can be useful
-during development, but you should always make sure that your notebook
-works correctly when cells are executed in order before considering it
-complete (that is, make sure the "Run -> Restart Kernel and Run all
-Cells" menu option produces the output you want). Don't worry about
-understanding the details of the code in this section.
+...`). Execute this cell. It will take some time.
 
 ```julia
 using Pkg
 try
-  Pkg.activate(".")
   using Dialysis # This assignment itself is in the "Dialysis" package. We will use some of the functions from it.
 catch
-  Pkg.activate(".")
   Pkg.develop(PackageSpec(url="https://github.com/UBCECON567/Dialysis"))
   using Dialysis
 end
@@ -174,30 +138,33 @@ Pkg.instantiate()
 
 Now let's get to work. I originally downloaded the data for this
 problem set from
-[https://dialysisdata.org/content/dialysis-facility-report-data](https://dialysisdata.org/content/dialysis-facility-report-data).
-As in @grieco2017 the data comes from Dialysis Facility Reports (DFRs)
-created under contract to the Centers for Medicare and Medicaid
-Services (CMS). However, there are some differences. Most notably,
-this data covers 2006-2014, instead of 2004-2008 as in @grieco2017 .
+[data.cms.gov](https://data.cms.gov/browse?q=dialysis). Here, you will
+find zip files for each fiscal year from 2008-2021. As in @grieco2017
+the data comes from Dialysis Facility Reports (DFRs) created under
+contract to the Centers for Medicare and Medicaid Services
+(CMS). However, there are some differences. Most notably, this data
+covers 2004-2019, instead of 2004-2008 as in @grieco2017.
 
-The R script
-[downloadDialysisData.R](https://bitbucket.org/paulschrimpf/econ565/src/master/assignments/production-R/dialysis/downloadDialysisData.R)
-downloads, combines, and cleans the data. Unfortunately,
-dialysisdata.org has reorganized their website, and the data no longer
-seems to be available. Similar (likely identical) data is available
-from
-[https://data.cms.gov/browse?q=dialysis](https://data.cms.gov/browse?q=dialysis). It
-might be useful to look at the documentation included with any of the
-"Dialysis Facility Report Data for FY20XX" zip files. Anyway, the
-result of the R script is the `dialysisFacilityReports.rda` file
-contained in the git repository for this assignment. This R data file
-contains most of the variables used by @grieco2017.
+The Julia code in
+[Dialysis/src/data.jl](https://github.com/UBCECON567/Dialysis/blob/master/src/Dialysis.jl)
+downloads and combines the data files. I did my best to include all
+the variables (plus more) used by @grieco2017. However, the underlying
+data is complicated (there are over 1500 variables each year), so it's
+possible I have made mistakes. It might be useful to look at
+the documentation included with any of the "Dialysis Facility Report
+Data for FY20XX" zip files at [data.cms.gov](https://data.cms.gov/browse?q=dialysis).
+
+The result of the code in `data.jl` is the `dfr.zip` file contained in
+the git repository for this assignment. This zip file contains a csv
+file with most of the variables used by @grieco2017, as well as some
+additional information.
 
 ```julia; cache=true
 using DataFrames  # DataFrames.jl is a package for storing and
                   # interacting with datasets
-dialysis = loaddata() # loaddata() is a function I wrote that is part
-                      # of Dialysis.jl. It returns a DataFrame
+using Dialysis # the package for this assignment
+dialysis = loadDFR() # loadDFR() is a function I wrote that is part
+                     # of Dialysis.jl. It returns a DataFrame
 typeof(dialysis)
 ```
 

@@ -1,12 +1,12 @@
 module Dialysis
 
 using DataFrames
+import CSV, ZipFile
 using LinearAlgebra: det, Diagonal, UniformScaling
 using Distributions: pdf, MvNormal, pdf!
 using ForwardDiff
 using Statistics: std, var, mean, cov
 using FixedEffectModels
-import RData
 import ShiftedArrays
 
 export panellag, locallinear, loaddata,
@@ -181,6 +181,9 @@ function polyreg(xpred::AbstractMatrix,
     return(ypred)
   end
 end
+
+
+include("data.jl")
 
 """
     loaddata()
