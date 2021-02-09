@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.12.18
+# v0.12.20
 
 using Markdown
 using InteractiveUtils
@@ -83,6 +83,15 @@ Pluto.run()
 
 This will open the Pluto interface in your browser. If you close Julia
 and want to start Pluto again, you only need to repeat this last step.
+
+Download the notebook file from [github](https://raw.githubusercontent.com/UBCECON567/Dialysis/master/docs/pluto/dialysis-1.jl) and open it in Pluto. 
+
+!!! tip 
+    Instead of downloading the notebook manually, you can let Julia download when Pluto starts by entering 
+    ```julia
+    Pluto.run(notebook="https://raw.githubusercontent.com/UBCECON567/Dialysis/master/docs/pluto/dialysis-1.jl")
+    ``` 
+    instead of `Pluto.run()`. Be sure to save the notebook somewhere on your computer after it opens.
 
 ### Julia Resources
 
@@ -653,6 +662,12 @@ md"""
     Please hand in both your modified `dialysis-1.jl` and an html export of it. Use the triangle and circle icon at the top of the page to export it.
 """
 
+# ╔═╡ 4698fca2-6a41-11eb-0f0a-81550ab0a0dd
+let 
+	x = [missing, 1.0, 0.0]
+	x .≈ 0
+end
+
 # ╔═╡ Cell order:
 # ╟─d5554696-5f6f-11eb-057f-a79641cf483a
 # ╟─ad1cc4c6-5f72-11eb-35d5-53ff88f1f041
@@ -715,3 +730,4 @@ md"""
 # ╠═12a3d1a0-5fa4-11eb-11a3-297c335010c7
 # ╟─1eaaaf1e-5fa4-11eb-1338-49f1dd9aa2dc
 # ╟─c09dd940-5ff9-11eb-0db4-bf9f169c5508
+# ╠═4698fca2-6a41-11eb-0f0a-81550ab0a0dd

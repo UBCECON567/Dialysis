@@ -93,12 +93,15 @@ yvars = Dict(
   "shr" => "standard hospitalization ratio",
   "sepi" => "% hospitalizations for septicemia",
 
-  #
+  # lab work
+  "hctmean" => "average hemocrit",
   "hct33" => "% patients with Hemocrit>=33 (good)",
   "urr65" => "% patients with Urea reduction ratio>=65 (good)",
 
+  # patient counts
   "phd" => "monthly prevalent hemodialysis patient (in-center & home)",
   "ihd" => "monthly average new patients",
+
   # access type
   "ppavf" => "% receiving treatment with fistula",
   "ppavg" => "% receiving treatment with graft",
@@ -132,6 +135,7 @@ yvars = Dict(
   "modhd" => "% on HD",
   "modhhd" => "% on home HD",
   "modshd" => "% on in-center self HD",
+
   # comorbidites (among medicare patients)
   "clmalcom" => "% alcohol dependence",
   "clmanem" => "% anemia",
@@ -153,15 +157,57 @@ yvars = Dict(
   "clmmim" => "% myocardial infarction",
   "clmpvdm" => "% Peripheral Vascular Disease",
   "clmpnem" => "% pneumonia",
-  "clmcntcom" => "average number of comorbidities"
+  "clmcntcom" => "average number of comorbidities",
+
+  # characteristics of new patients
+  "agemy" => "average age of new patients",
+  "femmy" => "% female among new patients",
+  "asianmy" => "% Asian among new patients",
+  "blackmy" => "% Black among new patients",
+  "whitemy" => "% White among new patients",
+  "ethmy" => "% Hispanic among new patients",
+  "dbprim" => "% diabetes primary cause among new patients",
+  "gnprim" => "% GN primary cause among new patients",
+  "htprim" => "% hypertension primary cause among new patients",
+  "insempy" => "% employer insured among new patients",
+  "insmdcdmy" => "% medicaid only among new new patients",
+  "insmdcrcdmy" => "% medicaid & medicare among new patients",
+  "insmdcrmy" => "% medicare only among new patients",
+  "insmdcromy" => "% medicare & other among new patients",
+  "insnonemy" => "% no insurance among new patients",
+  "bmifmy" => "median BMI among female new patients",
+  "bmimmy" => "median BMI among male new patients",
+  "cempmy" => "% employed or student among new patients",
+  "pempmy" => "% previously employed or student among new patients",
+  "mefavfmy" => "% fistula among new patietns",
+  "mefcathmy" => "% catheter among new patients",
+  "mefgraftmy" => "% av graft among new patients",
+  "hemomy" => "number of new hemodialysis patients",
+  "hgmy" => "average hemoglobin among new patients",
+  "salbmy" => "average serum albumin among new patients",
+  "creamy" => "average creatine among new patients",
+  "alcomy" => "% alcoholic among new patients",
+  "ambumy" => "% unable to ambulate among new patients",
+  "ashdmy" => "% atherosclerotic heart disease among new patients",
+  "canmy" => "% cancer among new patients",
+  "chfmy" => "% CHF among new patients",
+  "copdmy" => "% COPD among new patients",
+  "cvamy" => "% CVD, CVA, TIA among new patients",
+  "diabmy" => "% diabetes among new patients",
+  "drugmy" => "% drug dependent among new patients",
+  "hxhtmy" => "% hypertension history among new patients",
+  "othcarmy" => "% other cardiac disorder among new patients",
+  "pvdmy" => "% PVD among new patients",
+  "smokmy" => "% smoker among new patients",
+  "cntcomy" => "average number of comorbidities among new patients"
 )
 
 
 """
     loadDFR(;recreate=false)
 
-If Dialysis/data/dfr.FIXME exists, load it from disk. Otherwise,
-create Dialysis/data/dfr.FIXME exists by loading Dialysis Facility
+If Dialysis/data/dfr.zip exists, load it from disk. Otherwise,
+create Dialysis/data/dfr.zip exists by loading Dialysis Facility
 Reports from zipfiles in `Dialysis/data/`.
 """
 function loadDFR(;recreate=false)
