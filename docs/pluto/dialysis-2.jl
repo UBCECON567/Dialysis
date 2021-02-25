@@ -238,6 +238,20 @@ Paul Schrimpf
 [Creative Commons Attribution-ShareAlike 4.0 International License](http://creativecommons.org/licenses/by-sa/4.0/)
 """
 
+# ╔═╡ e85bfc08-7789-11eb-3a9d-b7b7a95b74ae
+md"""
+Download the [notebook file from github](https://raw.githubusercontent.com/UBCECON567/Dialysis/master/docs/pluto/dialysis-2.jl) and open it in Pluto.
+
+!!! tip
+
+    Instead of downloading the notebook manually, you can let Julia download when Pluto starts by entering
+    ```julia
+    Pluto.run(notebook="https://raw.githubusercontent.com/UBCECON567/Dialysis/master/docs/pluto/dialysis-2.jl")
+    ```
+    instead of Pluto.run(). Be sure to save the notebook somewhere on your computer after it opens.
+
+"""
+
 # ╔═╡ 1a1313d4-7713-11eb-2fef-af1b32a702c2
 md""" 
 # Update Dialysis.jl package
@@ -635,6 +649,7 @@ end
 
 # ╔═╡ Cell order:
 # ╟─c3feba7a-6a36-11eb-0303-7b823e9867b0
+# ╟─e85bfc08-7789-11eb-3a9d-b7b7a95b74ae
 # ╟─1a1313d4-7713-11eb-2fef-af1b32a702c2
 # ╠═e25c28d8-6a36-11eb-07f3-2fcd5b400618
 # ╟─e4fdebf8-6a36-11eb-30d3-dffd45f2943f
