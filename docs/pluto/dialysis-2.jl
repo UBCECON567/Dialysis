@@ -267,8 +267,14 @@ catch
 end
 using Dialysis
 pkgdir = normpath(joinpath(dirname(Base.pathof(Dialysis)), ".."))
-cmd = `cd $pkgdir && git pull origin master`
-run(cmd)
+wd = pwd()
+try 
+	cd(pkgdir)
+	run(`git fetch --all`)
+	run(`git reset --hard origin/master`)
+finally
+	cd(wd)
+end
 ```
 
 Note: we only have to update the package this way, because it was installed via `Pkg.develop` instead of `Pkg.add`. With `Pkg.add`, a simple `Pkg.update("Dialysis")` would update it. 
@@ -276,6 +282,9 @@ Note: we only have to update the package this way, because it was installed via 
 !!! info "Revise.jl"
     The [Revise](https://timholy.github.io/Revise.jl/stable/) package is a very useful tool for writing Julia code. It makes it so that changes to package source code are immediately loaded into a running Julia session. The `git pull origin master` command update the Dialysis.jl code, and Revise makes sure that this update gets loaded into Julia right away. Without Revise.jl, we would have to restart Julia for the changes in Dialysis.jl to have an effect.
 """
+
+# ╔═╡ 95e580b4-7e0c-11eb-05ef-696155fd979f
+Pkg.Registry.update()
 
 # ╔═╡ e4fdebf8-6a36-11eb-30d3-dffd45f2943f
 md"""
@@ -349,7 +358,7 @@ begin
 
 	# you may want to restrict sample to match sample that can be 
 	# used in control function estimates 
-	reg(dialysis, @formula(lpy ~ quality + logK + logL + fe(idcat)),
+	reg(dialysis, @formula(lpy ~ quality + logK + logL ), #+ fe(idcat)),
 		Vcov.cluster(:idcat))
 end
 
@@ -651,6 +660,7 @@ end
 # ╟─c3feba7a-6a36-11eb-0303-7b823e9867b0
 # ╟─e85bfc08-7789-11eb-3a9d-b7b7a95b74ae
 # ╟─1a1313d4-7713-11eb-2fef-af1b32a702c2
+# ╠═95e580b4-7e0c-11eb-05ef-696155fd979f
 # ╠═e25c28d8-6a36-11eb-07f3-2fcd5b400618
 # ╟─e4fdebf8-6a36-11eb-30d3-dffd45f2943f
 # ╠═7c447c7a-6a37-11eb-03cf-6f2c5b11326b
