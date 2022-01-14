@@ -248,8 +248,8 @@ function partiallinear(y::Symbol, x::Array{Symbol, 1},
                        clustervar::Symbol=Symbol())
   vars = [y, x..., controls...]
   inc = completecases(data[!,vars])
-  YX = disallowmissing(convert(Matrix, data[!,[y, x...]][inc,:]))
-  W = disallowmissing(convert(Matrix, data[!,controls][inc,:]))
+  YX = Matrix(disallowmissing(data[!,[y, x...]][inc,:]))
+  W = Matrix(disallowmissing(data[!,controls][inc,:]))
   fits = npregress(W,W,YX)
   Resid = YX - fits
   df = DataFrame(Resid, [y, x...])
@@ -324,8 +324,8 @@ function partiallinearIV(y::Symbol, q::Symbol, z::Array{Symbol,1},
   inc = completecases(data[:,vars])
   Y = disallowmissing(data[inc,y])
   Q = disallowmissing(data[inc,q])
-  Z = disallowmissing(convert(Matrix, data[inc,z]))
-  X = disallowmissing(convert(Matrix, data[inc,controls]))
+  Z = Matrix(disallowmissing(data[inc,z]))
+  X = Matrix(disallowmissing(data[inc,controls]))
   XZ = hcat(X,Z)
   qhat = npregress(XZ,XZ,reshape(Q,length(Q),1))
   fits = npregress(X,X,hcat(Y,qhat))
@@ -442,7 +442,7 @@ function objective_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
                       npregress::Function=(xp,xd,yd)->polyreg(xp,xd,yd,degree=1,
                                                               deriv=true),
                       clusterid=nothing)
-  z = convert(Matrix,data[!,instruments]);
+  z = Matrix(data[!,instruments])
   dta = deepcopy(data[:,unique([y, k, l, q, Φ, id, t, instruments...,
                                 :eq, :ez, :ey])]);
   dta[!,:eqlag] = panellag(:eq, dta, id, t, 1)
@@ -544,7 +544,7 @@ function clustercov(x::Array{<:Union{Missing,<:Number},2},
                     clusterid)
   df = hcat(DataFrame(x), DataFrame([clusterid],[:cid]))
   inc = findall(completecases(df))
-  clustercov(disallowmissing(convert(Matrix,df[inc,1:size(x,2)])),
+  clustercov(Matrix(disallowmissing(df[inc,1:size(x,2)])),
              disallowmissing(df[:cid][inc]))
 end
 
