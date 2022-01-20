@@ -4,6 +4,12 @@
 using Markdown
 using InteractiveUtils
 
+# ╔═╡ 5c1aeb4f-fef2-41d0-813f-eb78728ea83b
+begin
+	import Pkg
+	Pkg.Registry.add("https://github.com/schrimpf/juliaregistry.git")
+end
+
 # ╔═╡ c6f8ecfe-0e81-45a9-b7e6-a9ff629b549b
 using PlutoUI
 
@@ -674,6 +680,7 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Dialysis = "9b71aec8-1451-11e9-12ed-579ec60579c4"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
@@ -1949,6 +1956,7 @@ version = "0.9.1+5"
 # ╟─ad1cc4c6-5f72-11eb-35d5-53ff88f1f041
 # ╟─85ab85ff-6986-46e5-b8ba-6c80ccca8a3e
 # ╠═c6f8ecfe-0e81-45a9-b7e6-a9ff629b549b
+# ╠═5c1aeb4f-fef2-41d0-813f-eb78728ea83b
 # ╠═9e653793-a4dc-4843-980b-d8921303422f
 # ╟─7b4ecdee-5f73-11eb-388c-4d6f9719d79b
 # ╟─a75918ae-5f73-11eb-3a3e-2f64c0dcc49c
