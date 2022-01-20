@@ -7,7 +7,7 @@ using InteractiveUtils
 # ╔═╡ 5c1aeb4f-fef2-41d0-813f-eb78728ea83b
 begin
 	import Pkg
-	Pkg.Registry.add("https://github.com/schrimpf/juliaregistry.git")
+	Pkg.Registry.add(Pkg.Registry.RegistrySpec(url="https://github.com/schrimpf/juliaregistry.git"))
 end
 
 # ╔═╡ c6f8ecfe-0e81-45a9-b7e6-a9ff629b549b
