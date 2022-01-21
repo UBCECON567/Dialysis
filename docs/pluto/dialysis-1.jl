@@ -5,7 +5,8 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 5c1aeb4f-fef2-41d0-813f-eb78728ea83b
-begin
+begin 
+	# the Dialysis.jl package is not in the official Julia registry, so we need to tell Julia / Pluto where to find it
 	import Pkg
 	Pkg.Registry.add(Pkg.Registry.RegistrySpec(url="https://github.com/schrimpf/juliaregistry.git"))
 end
@@ -1955,8 +1956,8 @@ version = "0.9.1+5"
 # ╟─d5554696-5f6f-11eb-057f-a79641cf483a
 # ╟─ad1cc4c6-5f72-11eb-35d5-53ff88f1f041
 # ╟─85ab85ff-6986-46e5-b8ba-6c80ccca8a3e
-# ╠═c6f8ecfe-0e81-45a9-b7e6-a9ff629b549b
 # ╠═5c1aeb4f-fef2-41d0-813f-eb78728ea83b
+# ╠═c6f8ecfe-0e81-45a9-b7e6-a9ff629b549b
 # ╠═9e653793-a4dc-4843-980b-d8921303422f
 # ╟─7b4ecdee-5f73-11eb-388c-4d6f9719d79b
 # ╟─a75918ae-5f73-11eb-3a3e-2f64c0dcc49c
