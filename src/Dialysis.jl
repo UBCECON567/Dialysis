@@ -53,7 +53,7 @@ function panellag(x::Symbol, data::AbstractDataFrame, id::Symbol, t::Symbol,
   xlag[ ismissing.(tlag) .|
         (tlag .!= df[!,t].-lags) .|
         (idlag .!= df[!,id]) ] .= missing
-  if (p == nothing)
+  if (p === nothing)
     return(xlag)
   else
     xout = similar(xlag)
@@ -151,8 +151,8 @@ function polyreg(xpred::AbstractMatrix,
     for d in 1:degree
       Xnew = Array{eltype(xdata), 2}(undef, size(xdata,1), size(X,2)*size(xdata,2))
       k = 1
-      for c in 1:size(xdata,2)
-        for j in 1:size(X,2)
+      for c in axes(xdata)[2]
+        for j in axes(X)[2]
           @views Xnew[:, k] = X[:,j] .* xdata[:,c]
           k += 1
         end
@@ -484,13 +484,13 @@ function objective_gm(y::Symbol,  k::Symbol, l::Symbol, q::Symbol,
     M = mean(m, dims=1)
     (M*W*M')[1]
   end
-  if (clusterid==nothing)
+  if (clusterid===nothing)
     N = size(gi,1)
   else
     N = length(unique(data[inc,clusterid]))
   end
   function Σ(gi)
-    if (clusterid==nothing)
+    if (clusterid===nothing)
       V = cov(gi)
     else
       V = clustercov(gi, data[inc,clusterid])

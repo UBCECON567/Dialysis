@@ -63,7 +63,7 @@ end
   df = DataFrame(id = vec(id), t=vec(t), y = randn(N*T),
                  l = randn(N*T), k=randn(N*T),
                  invest = Vector{Union{Float64, Missing}}(undef,N*T))
-  df.invest .= randn(N*T)
+  df.invest[:] .= randn(N*T)
   df.invest[df.t.==1] .= missing
   sort!(df, [:id, :t])
   preg = (xp, xd, yd)->Dialysis.polyreg(xp, xd, yd, degree = 2)

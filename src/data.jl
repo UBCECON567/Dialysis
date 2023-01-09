@@ -26,7 +26,7 @@ function downloadDFR(;redownload=false)
   for (y, url) in urls
     zfile = joinpath(datadir,"FY$y.zip")
     if !isfile(zfile) || redownload
-      download(url,zfile)
+       download(url,zfile)
     end
   end
 end
@@ -90,8 +90,10 @@ yvars = Dict(
   "rdsh" => "number of patients with hospitalization info",
   "hdy" => "years at risk of hospitalization days",
   "hty" => "years at risk of hospital admission",
-  "shr" => "standard hospitalization ratio",
+  "shrd" => "standardized hospitalization ratio (days)",
+  "shrt" => "standardized hospitalization ratio (admissions)",
   "sepi" => "% hospitalizations for septicemia",
+  "srr" => "standardized readmission ratio",
 
   # lab work
   "hctmean" => "average hemocrit",
@@ -199,7 +201,21 @@ yvars = Dict(
   "othcarm" => "% other cardiac disorder among new patients",
   "pvdm" => "% PVD among new patients",
   "smokm" => "% smoker among new patients",
-  "cntcom" => "average number of comorbidities among new patients"
+  "cntcom" => "average number of comorbidities among new patients",
+  "nephnom" => "new patients, no prior ESRD care",
+  "nephunkmissm" => "new patients, unknown prior care",
+  "nephy12m" => "new patients, >12m prior Nephrologist care",
+  "nephy612m" => "new patients, 6-12m prior Nephrologist care",
+  "nephy6m" => "new patients, <6m prior Nephrologist care",
+
+  # Anemia management
+  "CWhdavgHGB" => "average hemoglobin levels (g/dL) of hemodialysis patients",
+  "CWpdavgHGB" => "average hemoglobin levels (g/dL) of peritoneal dialysis patients",
+  "CWpdesarx" => "% PD patients prescribed ESA",
+  "CWhdesarx" => "% HD patients prescribed ESA",
+  "strr" => "Standardized transfusion rate",
+  "tf" => "Number of transfusions",
+  "tfy" => "Patient years at risk of transfusion"
 )
 
 
@@ -291,3 +307,31 @@ function loadDFR(;recreate=false)
 
   return(df, merge(singlevars, yvars))
 end
+
+
+
+module API
+
+function getvariable(variable)
+
+  uuids =Dict( 2021 => "e66eaf03-398f-4a8c-9d1b-6aaf25fb6425",
+               2020 => "44aedde0-c535-497d-ab27-b415ec12ff5a",
+               2019 => "ffb183e0-93ef-4071-b818-eea2e81d6763",
+               2018 => "75deb6cc-b53d-4db9-bc23-db5e617b0e14",
+               2017 => "1f33b642-3ec0-4477-9808-3d2be0b1f540",
+               2016 => "a01f9359-f831-4b85-9df7-791d6d0a58d4",
+               2015 => "5348c5a0-fec4-43a3-a571-5a55e5be8617",
+               2014 => "eb5d36cd-6898-476a-91bb-06042a95a50f",
+               2013 => "10fdee58-4d52-458b-b910-a9ddcc86d8e2",
+               2012 => "35e24742-51e5-4a8c-8581-14dc2c5e7c87",
+               2011 => "a874d015-be12-417c-9497-c062ec775b1e",
+               2010 => "3bd7488a-ef51-445b-8458-a6656ff4e9ce",
+               2009 => "a47fd59f-2d80-4b6c-a272-d9b82054683b" )
+
+
+
+end
+
+end
+
+# https://data.cms.gov/provider-data/archived-data/dialysis-facilities
