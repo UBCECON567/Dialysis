@@ -245,8 +245,8 @@ function loadDFR(;recreate=false)
   downloadDFR()
 
   files = readdir(datadir,join=true)
-  files = files[occursin.(r"dfr_data_\d\d\d\d.zip|\d\d\d\d_Facility_Level|Data_\d\d\d\d.zip",files )]
-
+  files = files[occursin.(r"\d\d\d\d.zip",files )]
+  @show files
   years = [parse(Int64,match(r"(\d\d\d\d)",file).captures[1]) for file in files]
   for y ∈ minimum(years):maximum(years)
     if !(y ∈ years)
