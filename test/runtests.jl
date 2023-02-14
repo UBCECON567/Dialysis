@@ -1,3 +1,6 @@
+if false
+  push!(LOAD_PATH, "../")
+end
 using Dialysis
 using Test, DataFrames, Distributions, Statistics, LinearAlgebra, FixedEffectModels
 
