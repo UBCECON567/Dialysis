@@ -22,7 +22,7 @@ end
 
 @testset "locallinear" begin
   N = 1000
-  for d in 1:4
+  for d in 2:5
     x = randn(N,d)
     fx = pdf(MvNormal(d,1.0), x')
     y = randn(N,1)
