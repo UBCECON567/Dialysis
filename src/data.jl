@@ -1,34 +1,30 @@
 """
+    loaddata_old()
+
+Loads "dialysisFacilityReports.rda". Returns a DataFrame.
+"""
+function loaddata_old()
+  rdafile=normpath(joinpath(dirname(Base.pathof(Dialysis)),"..","data","dialysisFacilityReports.rda"))
+  dt = RData.load(rdafile,convert=true)
+  dt["dialysis"]
+end
+
+function loaddata()
+  loadDFR()
+end
+
+
+"""
     downloadDFR(;redownload=false)
 
 Downloads Dialysis Facility Reports. Saves zipfiles in `Dialysis/data/`.
 """
 function downloadDFR(;redownload=false)
   # urls obtained by searching data.cms.gov for dialysis facility reports
-  urls = Dict(
-    2008=>"https://data.cms.gov/download/tmj4-uh2k/application%2Fzip",
-    2009=>"https://data.cms.gov/download/df3w-m5va/application%2Fzip",
-    2010=>"https://data.cms.gov/download/pu2m-x27s/application%2Fzip",
-    2011=>"https://data.cms.gov/download/tmty-dzj6/application%2Fzip",
-    2012=>"https://data.cms.gov/download/gp9x-yv2a/application%2Fzip",
-    2013=>"https://data.cms.gov/download/rhn4-qw2b/application%2Fzip",
-    2014=>"https://data.cms.gov/download/uz5q-z58c/application%2Fzip",
-    2015=>"https://data.cms.gov/download/8hbp-qbht/application%2Fzip",
-    2016=>"https://data.cms.gov/download/q4sr-4779/application%2Fzip",
-    2017=>"https://data.cms.gov/download/ub2a-kzvr/application%2Fzip",
-    2018=>"https://data.cms.gov/download/33dw-bemn/application%2Fzip",
-    2019=>"https://data.cms.gov/download/7ha2-yz4a/application%2Fzip",
-    2020=>"https://data.cms.gov/download/4y3p-fyx9/application%2Fzip",
-    2021=>"https://data.cms.gov/download/wy3d-7buy/application%2Fzip"
-  )
   datadir = normpath(joinpath(dirname(Base.find_package("Dialysis")),"..","data"))
-  isdir(datadir) || mkdir(datadir)
-  for (y, url) in urls
-    zfile = joinpath(datadir,"FY$y.zip")
-    if !isfile(zfile) || redownload
-       download(url,zfile)
-    end
-  end
+  println("Goto https://data.cms.gov/quality-of-care/medicare-dialysis-facilities to download data.")
+  println("Save the data in $datadir")
+  nothing
 end
 
 singlevars = Dict(
@@ -60,7 +56,8 @@ altvarnames = Dict(
   "surveycfc_f" => "cfc_f",
   "surveystd_f" => "std_f",
   "provname" => "DFR_provname",
-  "owner_f" => "cw_owner_f")
+  "owner_f" => "cw_owner_f" #ownership_type
+)
 
 yvars = Dict(
   # "${key}y4_f" is for fiscal_year - 2
@@ -90,6 +87,7 @@ yvars = Dict(
   "rdsh" => "number of patients with hospitalization info",
   "hdy" => "years at risk of hospitalization days",
   "hty" => "years at risk of hospital admission",
+  "hta" => "number of hospital admissions",
   "shrd" => "standardized hospitalization ratio (days)",
   "shrt" => "standardized hospitalization ratio (admissions)",
   "sepi" => "% hospitalizations for septicemia",
@@ -111,6 +109,7 @@ yvars = Dict(
   "ppfist" => "% with fistula placed",
   "ppcg90" => "% with only catheter for more than 90 days",
   "pifist" => "% new patients with fistula placed",
+  "pd2inf100mo" => "PD Catheter infection rate per 100 PD patient-months (note: we want the HD infection rate, not this one",
 
   # patient characteristics (all for set of patients as of last day of year)
   "pah" => "Number of patients at end of year",
@@ -216,6 +215,9 @@ yvars = Dict(
   "strr" => "Standardized transfusion rate",
   "tf" => "Number of transfusions",
   "tfy" => "Patient years at risk of transfusion"
+
+  # Inspections
+
 )
 
 
@@ -227,13 +229,12 @@ create Dialysis/data/dfr.zip exists by loading Dialysis Facility
 Reports from zipfiles in `Dialysis/data/`.
 """
 function loadDFR(;recreate=false)
-
-
   datadir = normpath(joinpath(dirname(Base.find_package("Dialysis")),"..","data"))
   dfrfile = joinpath(datadir, "dfr.zip")
   if isfile(dfrfile) && !recreate
     z = ZipFile.Reader(dfrfile)
-    csvinzip = filter(x->occursin("dfr.csv",x.name), z.files)
+    csvinzip = filter(x->occursin(".csv",x.name), z.files)
+    @show csvinzip
     length(csvinzip)==1 || error("Multiple csv files found in $file")
     println("Reading $csvinzip[1]")
     df = CSV.File(read(csvinzip[1])) |> DataFrame
@@ -242,58 +243,37 @@ function loadDFR(;recreate=false)
   end
 
   downloadDFR()
+
   files = readdir(datadir,join=true)
-  files = files[occursin.(r"FY\d+\.zip",files )]
+  files = files[occursin.(r"\d\d\d\d.zip",files )]
+  @show files
+  years = [parse(Int64,match(r"(\d\d\d\d)",file).captures[1]) for file in files]
+  for y ∈ minimum(years):maximum(years)
+    if !(y ∈ years)
+      @warn "Data for $y not found"
+    end
+  end
 
   ally = DataFrame()
   alls = DataFrame()
   for file in files
-    year = parse(Int64,match(r"FY(\d+)\.zip",file).captures[1])
+    year = parse(Int64,match(r"(\d\d\d\d)",file).captures[1])
+    @show file
     z = ZipFile.Reader(file)
-    csvinzip = filter(x->occursin("$year.csv",x.name), z.files)
+    csvinzip = filter(x->occursin(Regex("$year.+csv\$"),x.name), z.files)
     length(csvinzip)==1 || error("Multiple csv files found in $file")
-    println("Reading $csvinzip[1]")
+    println("Reading $(csvinzip[1].name)")
     ydf = CSV.File(read(csvinzip[1])) |> DataFrame
     close(z)
     ydf[!,:fiscal_year] .= year
-
-    oldv = collect(keys(singlevars))
-    v = copy(oldv)
-    for i in eachindex(v)
-      if !(v[i] in names(ydf))
-        newv = replace(v[i], "_f" => "_n_f")
-        if !(newv in names(ydf))
-          if ((v[i] in keys(altvarnames)) &&
-              (lowercase(altvarnames[v[i]]) in lowercase.(names(ydf))))
-            newv = altvarnames[v[i]]
-          else
-            newv = v[i]
-          end
-        end
-        if !(newv in names(ydf))
-          m = findall(lowercase(newv).==lowercase.(names(ydf)))[1]
-          newv = names(ydf)[m]
-        end
-        v[i] = newv
-      end
-    end
-    tmp = ydf[!,Symbol.(v)]
-
-    for (o, n) in zip(oldv, v)
-      if n in names(tmp)
-        rename!(tmp, n=>o)
-      end
-    end
-    append!(alls, tmp, promote=true)
-    for y in 1:4
-      println("year = $year, y=$y")
-      v = vcat([ names(ydf)[occursin.(Regex("^$(x)y$(y)_f"),
-                                      names(ydf))]
-                 for x in keys(yvars) ]...)
-      tmp2 = ydf[!,[:provfs, :fiscal_year, Symbol.(v)...]]
-      tmp2[!,:year] .= year - 6 + y
-      rename!(x->replace(x, "y$(y)_f" => "") , tmp2)
-      append!(ally, tmp2, cols=:union)
+    if (size(ydf,2)>100)
+      tmp = singlevars_old(ydf)
+      append!(alls, tmp, promote=true)
+      append!(ally, yearvars_old(ydf), cols=:union, promote=true)
+    else
+      tmp = singlevars_new(ydf)
+      append!(alls, tmp, promote=true)
+      append!(ally, yearvars_new(ydf), cols=:union, promote=true)
     end
   end
   df = outerjoin(alls, ally, on=[:provfs, :fiscal_year])
@@ -308,30 +288,276 @@ function loadDFR(;recreate=false)
   return(df, merge(singlevars, yvars))
 end
 
+function yearvars_old(ydf; yvars=yvars)
+  year = unique(ydf.fiscal_year)
+  @assert length(year)==1
+  year = year[1]
+  ally=DataFrame()
+  for y in 1:4
+    println("year = $year, y=$y")
+    v = vcat([ names(ydf)[occursin.(Regex("^$(x)y$(y)_f"),
+                                    names(ydf))]
+               for x in keys(yvars) ]...)
+    tmp2 = ydf[!,[:provfs, :fiscal_year, Symbol.(v)...]]
+    tmp2[!,:year] .= year - 6 + y
+    rename!(x->replace(x, "y$(y)_f" => "") , tmp2)
+    append!(ally, tmp2, cols=:union)
+  end
+  return(ally)
+end
+
+"""
+parse data from file in old format (2019 or older)
+"""
+function singlevars_old(ydf; singlevars=singlevars, altvarnames=altvarnames)
+  oldv = collect(keys(singlevars))
+  v = copy(oldv)
+  for i in eachindex(v)
+    if !(v[i] in names(ydf))
+      @show v[i]
+      newv = replace(v[i], "_f" => "_n_f")
+      if !(newv in names(ydf))
+        if (v[i] in keys(altvarnames))
+          av = altvarnames[v[i]]
+          if lowercase(av) ∈ lowercase.(names(ydf))
+            newv = av
+          end
+        else
+          newv = v[i]
+        end
+      end
+      if !(newv in names(ydf))
+        m = findall(lowercase(newv).==lowercase.(names(ydf)))[1]
+        newv = names(ydf)[m]
+      end
+      v[i] = newv
+    end
+    if !(v[i] ∈ names(ydf))
+      @error "Could not find $(v[i]) in data for $year"
+    end
+  end
+  tmp = ydf[!,Symbol.(v)]
+
+  for (o, n) in zip(oldv, v)
+    if n in names(tmp)
+      rename!(tmp, n=>o)
+    end
+  end
+  return(tmp)
+end
+
+"""
+parse data from file in new format (2020 or newer)
+"""
+function yvars_new(df; yvars=yvars)
+  @warn "Parsing data from 2020 or newer not implemented"
+  return(DataFrame())
+end
+
+"""
+parse data from file in new format (2020 or newer)
+"""
+function singlevars_new(df; singlevars=singlevars)
+  @warn "Parsing data from 2020 or newer not implemented"
+  return(DataFrame())
+  oldv = collect(keys(singlevars))
+  v = copy(oldv)
+  for i in eachindex(v)
+    if !(v[i] in names(ydf))
+      @show v[i]
+      newv = replace(v[i], "_f" => "_n_f")
+      if !(newv in names(ydf))
+        if (v[i] in keys(altvarnames))
+          for av ∈ altvarnames[v[i]]
+            if lowercase(av) ∈ lowercase.(names(ydf))
+              newv = av
+              break
+            end
+          end
+        end
+      else
+        newv = v[i]
+      end
+      if !(newv in names(ydf))
+        m = findall(lowercase(newv).==lowercase.(names(ydf)))[1]
+        newv = names(ydf)[m]
+      end
+      v[i] = newv
+    end
+    if !(v[i] ∈ names(ydf))
+      @error "Could not find $(v[i]) in data for $year"
+    end
+  end
+  tmp = ydf[!,Symbol.(v)]
+
+  for (o, n) in zip(oldv, v)
+    if n in names(tmp)
+      rename!(tmp, n=>o)
+    end
+  end
+  return(tmp)
+end
+
+################################################################################
+
+module Cleaning
+
+using Dates, DataFrames, StatsBase, Statistics
+"""
+     guesstype(x)
+
+Try to guess at appropriate type for x.
+"""
+function guesstype(x::AbstractArray{T}) where T <:Union{S,Missing} where S <: AbstractString
+  if all(occursin.(r"(^\.$)|(^(-|)\d+)$",skipmissing(x)))
+    return Int
+  elseif all(occursin.(r"(^\.$)|(^(-|\d)\d*(\.|)\d*$)",skipmissing(x)))
+    return Float64
+  elseif all(occursin.(
+    r"(^\.$)|(^\d\d\D{3}\d{4}$|^\d\d/\d\d/\d{4}$)",
+    skipmissing(x)))
+    return Date
+  else
+    return S
+  end
+end
+guesstype(x) = eltype(x)
 
 
-module API
+parse(t, x) = Base.parse(t, x)
+# we need a parse that "converts" a string to string
+parse(::Type{S}, x::S) where S <: AbstractString = x
+# a version of parse that works for the date formats in this data
+parse(::Type{Dates.Date}, x::AbstractString) = occursin(r"\D{3}",x) ? Date(x, "dduuuyyyyy") : Date(x,"m/d/y")
 
-function getvariable(variable)
+"""
+	    converttype(x)
 
-  uuids =Dict( 2021 => "e66eaf03-398f-4a8c-9d1b-6aaf25fb6425",
-               2020 => "44aedde0-c535-497d-ab27-b415ec12ff5a",
-               2019 => "ffb183e0-93ef-4071-b818-eea2e81d6763",
-               2018 => "75deb6cc-b53d-4db9-bc23-db5e617b0e14",
-               2017 => "1f33b642-3ec0-4477-9808-3d2be0b1f540",
-               2016 => "a01f9359-f831-4b85-9df7-791d6d0a58d4",
-               2015 => "5348c5a0-fec4-43a3-a571-5a55e5be8617",
-               2014 => "eb5d36cd-6898-476a-91bb-06042a95a50f",
-               2013 => "10fdee58-4d52-458b-b910-a9ddcc86d8e2",
-               2012 => "35e24742-51e5-4a8c-8581-14dc2c5e7c87",
-               2011 => "a874d015-be12-417c-9497-c062ec775b1e",
-               2010 => "3bd7488a-ef51-445b-8458-a6656ff4e9ce",
-               2009 => "a47fd59f-2d80-4b6c-a272-d9b82054683b" )
+Convert `x` from an array of strings to a more appropriate numeric type
+if possible.
+"""
+function converttype(x::AbstractArray{T}) where T <: Union{Missing, AbstractString}
+  etype = guesstype(x)
+  return([(ismissing(val) || val==".") ? missing : parse(etype,val)
+	  for val in x])
+end
+converttype(x) = x
+
+function combinefiscalyears(x::AbstractArray{T}) where T <: Union{Missing,Number}
+  if all(ismissing.(x))
+    return(missing)
+  else
+    v = median(skipmissing(x))
+    return(isnan(v) ? missing : v)
+  end
+end
+
+function combinefiscalyears(x)
+  # use most common value
+  if all(ismissing.(x))
+    return(missing)
+  else
+    return(maximum(countmap(skipmissing(x))).first)
+  end
+end
+
+function combinefiscalyears(x::DataFrames.PooledVector)
+  # use most common value
+  if all(ismissing.(x))
+    return(missing)
+  else
+    return(maximum(countmap(skipmissing(x))).first)
+  end
+end
 
 
+upcase(x) = Base.uppercase(x)
+upcase(m::Missing) = missing
 
+function dayssince(year, dates)
+  today = Date(year, 12, 31)
+  past = [x.value for x in today .- dates if x.value>=0]
+  if length(past)==0
+    return(missing)
+  else
+    return(minimum(past))
+  end
+end
+
+function cleanDFR(dialysis)
+  makestring(x) = String(x)
+  makestring(x::Int64) = "$x"
+  dialysis.provfs = makestring.(dialysis.provfs)
+  # fix the identifier strings. some years they're listed as ="IDNUMBER", others, they're just IDNUMBER
+  dialysis.provfs = replace.(dialysis.provfs, "="=>"")
+  dialysis.provfs = replace.(dialysis.provfs,"\""=>"")
+  # convert strings to numeric types
+  dialysis=mapcols(Cleaning.converttype, dialysis)
+
+  #gdf = groupby(dialysis,[:provfs,:year])
+  #for n ∈ names(dialysis)
+  #  combine(gdf, n => Cleaning.combinefiscalyears)
+  #end
+
+
+  dialysis = combine(groupby(dialysis, [:provfs,:year]),
+                     names(dialysis) .=> Cleaning.combinefiscalyears .=> names(dialysis))
+  sort!(dialysis, [:provfs, :year])
+
+  pt = Symbol.(filter(x->occursin.(r"PT$",x),names(dialysis)))
+  ft = Symbol.(filter(x->occursin.(r"FT$",x),names(dialysis)))
+  dialysis[!,:labor]=sum.(skipmissing(eachrow(dialysis[!,pt])))*0.5 +
+    sum.(skipmissing(eachrow(dialysis[!,ft])))
+
+  dialysis.hiring = panellag(:labor, dialysis, :provfs, :year, -1) - dialysis.labor
+  dialysis.investment = panellag(:totstas_f, dialysis, :provfs, :year, -1) - dialysis.totstas_f
+
+
+  dialysis.forprofit = (x->(x=="Unavailable" ? missing :
+    x=="For Profit")).(dialysis.owner_f)
+
+  # Chains
+  dialysis.fresenius = (x->(ismissing(x) ? false :
+    occursin(r"(FRESENIUS|FMC)",x))).(dialysis.chainnam)
+  dialysis.davita = (x->(ismissing(x) ? false :
+    occursin(r"(DAVITA)",x))).(dialysis.chainnam)
+  # could add more
+
+  # State inpection rates
+  inspect = combine(groupby(dialysis, :provfs),
+  :surveydt_f => x->[unique(skipmissing(x))])
+  rename!(inspect, [:provfs, :inspection_dates])
+  df=innerjoin(dialysis, inspect, on=:provfs)
+  @assert nrow(df)==nrow(dialysis)
+
+  df=transform(df, [:year, :inspection_dates] => (y,d)->Cleaning.dayssince.(y,d))
+  rename!(df, names(df)[end] =>:days_since_inspection)
+  df[!,:inspected_this_year] = ((df[!,:days_since_inspection].>=0) .&
+    (df[!,:days_since_inspection].<365))
+
+  # then take the mean by state
+  stateRates = combine(groupby(df, [:state, :year]),
+                       :inspected_this_year =>
+                         (x->mean(skipmissing(x))) => :state_inspection_rate)
+  # if no inpections in a state in a year then
+  # mean(skipmissing(x)) will be mean([]) = NaN. 0 makes more sense
+  stateRates.state_inspection_rate[isnan.(stateRates.state_inspection_rate)] .= 0
+
+  df = innerjoin(df, stateRates, on=[:state, :year])
+  @assert nrow(df)==nrow(dialysis)
+
+  # competitors
+  df[!,:provcity] = Cleaning.upcase.(df[!,:provcity])
+  comps = combine(groupby(df,[:provcity,:year]),
+  :dy =>
+    (x -> length(skipmissing(x).>=0.0)) =>
+    :competitors
+  )
+  comps = comps[.!ismissing.(comps.provcity),:]
+  dialysis = outerjoin(df, comps, on = [:provcity,:year], matchmissing=:equal)
+  @assert nrow(dialysis)==nrow(df)
+
+  return(dialysis)
 end
 
 end
-
-# https://data.cms.gov/provider-data/archived-data/dialysis-facilities
