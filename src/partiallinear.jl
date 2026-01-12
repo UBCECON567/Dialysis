@@ -92,11 +92,36 @@ function locallinear(xpred::AbstractMatrix,
   X = hcat(ones(n), xdata)
   w = Array{eltype(xpred), 1}(undef, n)
   dx = Array{eltype(xdata), 2}(undef, d,n)
+  xpi = zeros(eltype(xpred),d+1)
+  xpi[1] = 1
   @inbounds for i in 1:size(xpred)[1]
     @views dx .= (xdata' .- xpred[i,:])
+    @views xpi[2:end] .= xpred[i,:]
     pdf!(w, dist, dx)
-    w .= sqrt.(w)
-    @views ypred[i,:] = X[i,:]'* ((X'*Diagonal(w)*X) \ (X'*Diagonal(w)*ydata))
+    @views ypred[i,:] = xpi' * ((X'*Diagonal(w)*X) \ (X'*Diagonal(w)*ydata))
+  end
+  return(ypred)
+end
+
+function ll(xpred, xdata, ydata; bandwidth_multiplier=1.0)
+  (d, n) = size(xdata)
+  ypred = Array{eltype(xpred), 2}(undef, size(ydata,1), size(xpred,2))
+  # use Scott's rule of thumb
+  rootH = n^(-1/(d+4))*vec(std(xdata;dims=2))*bandwidth_multiplier
+  dist = MvNormal(rootH)
+  X = vcat(ones(n)', xdata)
+  #@show size(X)
+  #@show dist
+  w = Array{eltype(xpred), 1}(undef, n)
+  dx = Array{eltype(xdata), 2}(undef, d,n)
+  xpi = zeros(eltype(xpred),d+1)
+  xpi[1] = 1
+  @inbounds for i in 1:size(xpred,2)
+    @views dx .= (xdata .- xpred[:,i])
+    @views xpi[2:end] .= xpred[:,i]
+    pdf!(w, dist, eachcol(dx))
+    #w .= sqrt.(w)
+    @views ypred[:,i] = xpi' * ((X*Diagonal(w)*X') \ (X*Diagonal(w)*ydata'))
   end
   return(ypred)
 end
