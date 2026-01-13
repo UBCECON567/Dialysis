@@ -1,0 +1,8 @@
+ssh.key
+*~
+ssh.key.pub
+*backup*
+*zip
+\#*
+.Rhistory
+.juliahistory

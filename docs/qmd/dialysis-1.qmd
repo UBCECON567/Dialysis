@@ -1,0 +1,580 @@
+---
+title       : "Assignment: reproducing Grieco & McDevitt (2017)"
+subtitle    : "Part 1"
+author      : Paul Schrimpf
+date        : last-modified
+bibliography: "dialysis.bib"
+link-citations: true
+options:
+      out_width : 100%
+      wrap : true
+      fig_width : 800
+      dpi : 192
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    html-math-method: mathjax
+    self-contained: true
+    embed-resources: true
+engine: julia
+#julia:
+#  exeflags: ["--project=.."]
+---
+
+[![](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)](http://creativecommons.org/licenses/by-sa/4.0/)
+
+This work is licensed under a [Creative Commons Attribution-ShareAlike
+4.0 International
+License](http://creativecommons.org/licenses/by-sa/4.0/)
+
+The source is available [on github](https://github.com/ECON567/Dialysis).
+
+$$
+\def\indep{\perp\!\!\!\perp}
+\def\Er{\mathrm{E}}
+\def\R{\mathbb{R}}
+\def\En{{\mathbb{E}_n}}
+\def\Pr{\mathrm{P}}
+\newcommand{\norm}[1]{\left\Vert {#1} \right\Vert}
+\newcommand{\abs}[1]{\left\vert {#1} \right\vert}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\def\inprob{\,{\buildrel p \over \rightarrow}\,}
+\def\indist{\,{\buildrel d \over \rightarrow}\,}
+$$
+
+# Introduction
+
+This assignment will reproduce some of the results of @grieco2017.
+
+## Installation
+
+### Julia
+
+Download and install Julia from
+[https://julialang.org/](https://julialang.org/).
+
+### Editor
+
+You will want a good editor for writing code. If you already have a favorite editor, feel free to continue using it. Otherwise,
+[VSCode](https://code.visualstudio.com/) is a good choice. It is open source, very popular, and supported by a large company. Importantly, this means that it is likely to have continued updates for a long time. Any of the forks of VSCode, such as Cursor (AI focused), Antigravity (Google's version), or VSCodium (Microsoft free), are also fine. You will also want to install the [Julia extension](https://code.visualstudio.com/docs/languages/julia).
+
+### Quarto
+
+I recommend using [Quarto](https://quarto.org/) for writing your solutions, which you should also install.  There is also a [VSCode extension for Quarto](https://quarto.org/docs/tools/vscode/index.html). This document was created using Quarto.
+
+
+### This Assignment
+
+If using Quarto for your answers, download the `.qmd` file for this assignment from https://github.com/UBCECON567/Dialysis/blob/master/docs/qmd/dialysis-1.qmd , and put it in a folder by itself. For the bibliography to work, you'll also need https://github.com/UBCECON567/Dialysis/blob/master/docs/qmd/dialysis.bib in the same folder.
+Change the author in the 4th line of `dialysis-1.qmd`. You can write your answers below each `!!! question` block. If you want, you can delete sections that are not questions, but that's up to you.
+
+If using another tool for your answers, turn in both your code and prose. These could be in the same file (like a Jupyter or Pluto notebook) or separate (e.g. a .jl file of code and pdf of prose). Your code should run, so it should include copies of code blocks from this document that you execute.
+
+## Julia resources
+
+This assignment will try to explain aspects of Julia as
+needed. However, if at some point you feel lost, you may want to
+consult some of the following resources. Reading the first few
+sections of either QuantEcon or Think Julia is recommended.
+
+### Resources
+
+- [QuantEcon with Julia](https://lectures.quantecon.org/jl/)
+
+- [Think Julia](https://benlauwens.github.io/ThinkJulia.jl/latest/book.html#_colophon)
+  A detailed introduction to Julia and programming more
+  generally. Long, but recommended, especially if you're new to
+  programming.
+
+- From the julia prompt, you can access documentation with
+  `?functionname`. Some packages have better documentation than
+  others.
+
+- [https://julialang.org/](https://julialang.org/) is the website for
+  Julia
+
+- Documentation for core Julia can be found at
+  [https://docs.julialang.org/en/v1/](https://docs.julialang.org/en/v1/). All
+  Julia packages also have a github page. Many of these include
+  package specific documentation.
+
+- [The Julia Express](https://github.com/bkamins/The-Julia-Express)
+  short book with examples of Julia usage
+
+
+# Part I: Loading and exploring the data
+
+## Loading packages
+
+Like many programming environments (R, Python, etc), Julia relies on
+packages for lots of its functionality.The following code will
+download and install all the packages required for this
+assignment (but the packages will still need to be loaded with `using
+...`). Execute this cell. It will take a few minutes the first time you run it.
+
+```{julia}
+using Pkg
+Pkg.activate(".")
+try
+    using Dialysis # This assignment itself is in the "Dialysis" package. We will use some of the functions from it.
+catch
+    Pkg.develop(PackageSpec(url="https://github.com/UBCECON567/Dialysis"))
+    using Dialysis
+    Pkg.add(["DataFrames","Statistics","StatsBase","Dates","StatsPlots","Plots"])
+end
+```
+
+## Load the data
+
+Now let's get to work. I originally downloaded the data for this
+problem set from
+[data.cms.gov](https://data.cms.gov/browse?q=dialysis). Here, you will
+find zip files for each fiscal year from 2008-2021. As in @grieco2017
+the data comes from Dialysis Facility Reports (DFRs) created under
+contract to the Centers for Medicare and Medicaid Services
+(CMS). However, there are some differences. Most notably, this data
+covers 2004-2019, instead of 2004-2008 as in @grieco2017.
+
+::: {.callout-note title="Question"}
+
+An aspect of any IO analysis is a comprehensive understanding of industry details and regulations. Important changes in regulations, technology, or industry structure should be taken into account. Search for any changes in the dialysis industry over this time frame. Briefly describe any important changes.
+
+:::
+
+The Julia code in
+[Dialysis/src/data.jl](https://github.com/UBCECON567/Dialysis/blob/master/src/Dialysis.jl)
+downloads and combines the data files. I did my best to include all
+the variables (plus more) used by @grieco2017. However, the underlying
+data is complicated (there are over 1500 variables each year), so it's
+possible I have made mistakes. It might be useful to look at
+the documentation with any of the "Dialysis Facility Report Data for FY20XX" zip files at [data.cms.gov](https://data.cms.gov/quality-of-care/medicare-dialysis-facilities).
+
+The result of the code in `data.jl` is the `dfr.zip` file contained in
+the git repository for this assignment. This zip file contains a csv
+file with most of the variables used by @grieco2017, as well as some
+additional information.
+
+```{julia}
+using DataFrames  # DataFrames.jl is a package for storing and
+                  # interacting with datasets
+using Dialysis # the package for this assignment
+dialysis,datadic = loaddata() # loaddata() is a function I wrote that is part
+                      # of Dialysis.jl. It returns a Tuple{DataFrame, Dict}
+typeof(dialysis)
+```
+
+The variable `dialysis` now contains a `DataFrame` with the data. The variable `datadic` is a `Dictionary` with brief descriptions of the columns in `dialysis`.
+
+Use `datadic` as follows.
+
+```{julia}
+datadic["dis2"]
+```
+
+For more information on any of the variables, look at the documentation included with any of the "Dialysis Facility Report
+Data for FY20XX" zip files at [data.cms.gov](https://data.cms.gov/quality-of-care/medicare-dialysis-facilities).
+
+We will begin our analysis with some data cleaning. Then we will create some  exploratory statistics and figures. There are at least two reasons for this.
+First, we want to
+check for any anomalies in the data, which may indicate an error in
+our code, our understanding of the data, or the data itself. Second,
+we should try to see if there are any striking patterns in the data
+that deserve extra attention. We can get some information about all
+the variables in the data as follows
+
+```{julia}
+describe(dialysis)
+```
+
+## Data Cleaning
+
+From the above, we can see that the data has some problems. It appears that "." is used to indicate missing. We should replace these with `missing`. Also, the `eltype` of most columns is `String.` We should convert to numeric types where appropriate.
+
+::: {.callout-tip title="Types"}
+
+Every variable in Julia has a [type](https://docs.julialang.org/en/v1/manual/types/), which determines what information the variable can store. You can check the type of a variable with `typeof(variable)`. The columns of our `dialysis` DataFrame will each be some array-like type that can hold some particular types of elements. For examble, `typeof(dialysis[!,:nursePT])` (or equivalently `typeof(dialysis.nursePT)` should currently be `Array{String, 1}`. This means that right now the nursePT column can only hold strings. Therefore trying to assign an integer to an element of the column like `dialysis[2, :nursePT] = 0` will cause an error. If we want to convert the element type of the column, we have to assign the column to an entirely new array. We will do this below.
+
+:::
+
+::: {.callout-tip title="Missing"}
+
+[Julia includes a special type and value to represent missing data](https://docs.julialang.org/en/v1/manual/missing/). The element type of arrays that include `missing` will be `Union{Missing, OTHERTYPE}` where `OTHERTYPE` is something like `String` or `Float64`. The `Union` means each element of the array can hold either type `Missing` or `OTHERTYPE`. Some functions will behave reasonably when they encounter `missing` values, but many do not. As a result, we will have to be slightly careful with how we handle `missing` values.
+
+:::
+
+Although not apparent in the `describe(dialysis)` output, it is also worth mentioning the unique format of the data. The data is distributed with one file per fiscal year. Each fiscal year file reports the values of most variables in calendar years 6 to 2 years ago. We need to convert things to have a single calendar year value for each variable.
+
+### Type Conversion
+
+We begin by converting types. We will use [regular expressions](https://docs.julialang.org/en/v1/manual/strings/#Regular-Expressions) to try identify columns whose strings all look like integers or all look like floating point numbers.
+Many programming languages have ways to work with regular expressions. It is worth remembering regular expressions are a useful tool for parsing strings, but beyond that do not worry about the dark art of regular expressions too much.
+
+```{julia}
+function guesstype(x::AbstractArray{T}) where T <:Union{S,Missing} where S <: AbstractString
+	# r"" creates a regular expression
+	# regular expressions are useful for matching patterns in strings
+	# This regular expression matches strings that are either just "." or begin with - or a digit and are followed by 0 or more additional digits
+	#
+	# all(array) is true if all elements of the array are true
+	#
+	# skipmissing(x) creates a iterator over the non-missing elements of x (this iterator will behave like an array of the non-missing elements of x)
+	if all(occursin.(r"(^\.$)|(^(-|)\d+)$",skipmissing(x)))
+		return Int
+	elseif all(occursin.(r"(^\.$)|(^(-|\d)\d*(\.|)\d*$)",skipmissing(x)))
+		return Float64
+	elseif all(occursin.(
+				r"(^\.$)|(^\d\d\D{3}\d{4}$|^\d\d/\d\d/\d{4}$)",
+				skipmissing(x)))
+		return Date
+	else
+		return S
+	end
+end
+
+guesstype(x) = eltype(x)
+```
+
+
+::: {.callout-tip title="Multiple Dispatch"}
+
+An important Julia feature for organizing code is multiple dispatch. Multiple dispatch refers to having multiple definitions of functions with the same name, and which version of the function gets used is determined by the types of the function arguments. In the code above, we defined a generic `guesstype(x)` for any type of argument `x`. We also have a more specialized `guesstype(x)` function for `x` that are `AbstractArray` with element type either `String`, `Missing` or `Union{String, Missing}`. When we call `guesstype(whatever)` below, the most specific version of `guesstype` that fits the type of `whatever` will get used.
+
+:::
+
+```{julia}
+guesstype(["1", "3.3", "5"]) # this will call the first definition of guesstype since the argument is an Array of String
+```
+
+```{julia}
+guesstype([12.4, -0.8]) # this will call the second definition of guesstype since the argument is an Array of Float64
+```
+
+Again using multiple dispatch, we can create a function to convert the types of the columns of the `dialysis` DataFrame.
+
+::: {.callout-tip title="Adding Methods to Existing Functions"}
+
+`Base.parse` is a function included in Julia for converting strings to numeric types.
+We want to use parse to convert the types of our DataFrame columns.
+However, for some columns, we want to leave strings as strings, and for others we want to convert strings to dates.
+
+The builtin parse function only converts strings to numbers.
+However, we can define additional parse methods and use multiple dispatch to handle these cases.
+
+🏴‍☠️ Adding methods for types that we did not create to existing functions is called [type piracy](https://docs.julialang.org/en/v1/manual/style-guide/#Avoid-type-piracy). Type piracy can break code in unexpected ways, so it should be avoided. Instead of definining new methods for `Base.parse`, we create a new function `myparse` and add methods to it.🏴‍☠️
+
+
+This approach will make the `converttype` function defined below very short and simple.
+
+:::
+
+```{julia}
+using Dates
+"""
+Parse string `x` as type `t`
+"""
+myparse(t,x) = Base.parse(t,x)
+# we need a parse that "converts" a string to string
+myparse(::Type{S}, x::S) where S <: AbstractString = x
+# a version of parse that works for the date formats in this data
+myparse(::Type{Dates.Date}, x::AbstractString) = occursin(r"\D{3}",x) ? Date(x, "dduuuyyyyy") : Date(x,"m/d/y")
+```
+
+```{julia}
+converttype(x) = x
+function converttype(x::AbstractArray{T}) where T <: Union{Missing, AbstractString}
+	etype = guesstype(x)
+	return([(ismissing(val) || val==".") ? missing : myparse(etype,val)
+		for val in x])
+end
+```
+
+::: {.callout-tip title="Array Comprehension"}
+
+In `converttype`, we use an [array comprehension](https://docs.julialang.org/en/v1/manual/arrays/#man-comprehensions) to create the return value. Comprehensions  are a concise and convenient way to create new arrays from existing ones.
+
+[Generator expressions](https://docs.julialang.org/en/v1/manual/arrays/#Generator-Expressions) are a related concept.
+
+:::
+
+Now we use apply these functions to the `dialysis` dataframe.
+
+```{julia}
+cleandf = mapcols(converttype, dialysis)
+# fix the identifier strings. some years they're listed as ="IDNUMBER", others, they're just IDNUMBER
+cleandf.provfs = replace.(cleandf.provfs, "="=>"")
+cleandf.provfs = replace.(cleandf.provfs,"\""=>"")
+describe(cleandf)
+```
+
+### Reshaping
+
+Now, we will deal with the fiscal year/calendar year issues. As mentioned earlier, most variables that vary over time have their values reported for four previous years in each of the fiscal year data files. Thus, for these variables we will have four reports of what should be the same value. The values may not be the same if there are any data entry errors or similar problems. Let's begin by checking for this.
+
+```{julia}
+using Statistics
+
+# the Statistics.var function will give errors with Strings
+numcols = (Symbol(c) for c in names(cleandf) if eltype(cleandf[!,c]) <: Union{Missing, Number})
+# replace NaN with missing
+function variance(x)
+	v=var(skipmissing(x))
+	return(isnan(v) ? missing : v)
+end
+
+# display summary stats of within provfs and year variances
+describe(
+	# compute variance by provfs and year
+	combine(groupby(cleandf, [:provfs, :year]),
+			(numcols) .=> variance)
+)
+```
+
+The median variance is generally 0---most providers report variables consistently across years. However, there are large outliers. As a simple, but perhaps not best solution, we will use the median across fiscal years of each variable.
+
+```{julia}
+using StatsBase
+
+function combinefiscalyears(x::AbstractArray{T}) where T <: Union{Missing,Number}
+	if all(ismissing.(x))
+		return(missing)
+	else
+		v = median(skipmissing(x))
+		return(isnan(v) ? missing : v)
+	end
+end
+function combinefiscalyears(x)
+	# use most common value
+	if all(ismissing.(x))
+		return(missing)
+	else
+		return(maximum(countmap(skipmissing(x))).first)
+	end
+end
+
+cleandf = combine(groupby(cleandf, [:provfs,:year]),
+		names(cleandf) .=> combinefiscalyears .=> names(cleandf))
+sort!(cleandf, [:provfs, :year]);
+```
+### Defining Needed Variables
+
+Now, let's create the variables we will need.
+
+##### Labor
+
+The labor related variables all end in `FT` (for full-time) or `PT` (for part-time). Create labor as a weighted sum of these variables.
+
+```{julia}
+filter(x->occursin.(r"(F|P)T$",x.first), datadic) # list variables ending with PT or FT
+```
+
+::: {.callout-note title="Question"}
+
+Modify the code below.
+
+:::
+
+
+```{julia}
+cleandf.labor = cleandf[!,:nursePT]*0.5 + cleandf[!,:nurseFT]*1.0 # + more -- you should modify this
+```
+
+#### Hiring
+
+We should create hiring for the control function. There is `panellag` function in `Dialysis.jl` to help doing so.
+
+::: {.callout-note title="Question"}
+
+Should hiring at time $t$ be $labor_{t} - labor_{t-1}$ or $labor_{t+1}-labor_{t}$? In other words, should it be a backward or forward difference? Check in the paper if needed and modify the code below accordingly.
+
+:::
+
+```{julia}
+cleandf.hiring = cleandf.labor - panellag(:labor,cleandf, :provfs, :year, 1)
+ # or
+#panellag(:labor,cleandf, :provfs, :year, -1) - cleandf.labor ?
+```
+
+#### Output
+
+There are a few possible output measures in the data.
+
+CMS observes mortality for most, but possibly not all, dialysis patients. To compute mortality rates, the data reports the number of treated patient-years whose mortality will be observed in column `dy`.
+
+CMS only observes hospitalization for patients whose hospitalization is insured by Medicare. This is a smaller set of patients than those for whom mortality is observed. This number of patient years is in column `hdy`. (If I recall correctly, the output reported by @grieco2017 has summary statistics close to `hdy`).
+
+The column `phd` report patient-months of hemodialysis. My understanding is that this number/12 should be close to `dy`. Since there are other forms of dialysis, `dy` might be larger. On the other hand if there are hemodialysis patients whose mortality is not known, then `phd` could be larger.
+
+There might also be other reasonable variables to measure output that I have missed.
+
+
+::: {.callout-note title="Question"}
+
+Choose one (or more) measure of output to use in the tables and figures below and any subsequent analysis.
+
+:::
+
+
+
+#### For-profit and chain indicators
+
+
+::: {.callout-note title="Question"}
+
+Create a boolean forprofit indicator from the `owner_f` column, and Fresenius and Davita chain indicators from `chainnam`
+
+:::
+
+```{julia}
+unique(cleandf.owner_f)
+```
+
+```{julia}
+countmap(cleandf.chainnam)
+```
+
+```{julia}
+cleandf.forprofit = (cleandf.owner_f .== "For Profit") # modify if needed
+f(x) = ismissing(x) ? false : occursin(r"(FRESENIUS|FMC)",x) # improve if needed
+cleandf.fresenius = f.(cleandf.chainnam)
+# Also do something similar for davita and any other chains you think are important
+```
+
+#### State Inspection Rates
+
+State inspection rates are a bit more complicated to create.
+
+```{julia}
+inspect = combine(groupby(cleandf, :provfs),
+		          :surveydt_f => x->[unique(skipmissing(x))])
+rename!(inspect, [:provfs, :inspection_dates])
+df=innerjoin(cleandf, inspect, on=:provfs)
+@assert nrow(df)==nrow(cleandf)
+function dayssince(year, dates)
+	today = Date(year, 12, 31)
+	past = [x.value for x in today .- dates if x.value>=0]
+	if length(past)==0
+		return(missing)
+	else
+		return(minimum(past))
+	end
+end
+
+df=transform(df, [:year, :inspection_dates] => (y,d)->dayssince.(y,d))
+rename!(df, names(df)[end] =>:days_since_inspection)
+df[!,:inspected_this_year] = ((df[!,:days_since_inspection].>=0) .&
+	(df[!,:days_since_inspection].<365))
+
+# then take the mean by state
+stateRates = combine(groupby(df, [:state, :year]),
+                	 :inspected_this_year =>
+			             (x->mean(skipmissing(x))) => :state_inspection_rate)
+df = innerjoin(df, stateRates, on=[:state, :year])
+cleandf=df;
+```
+
+#### Competitors
+
+Creating the number of competitors in the same city is somewhat
+similar. Note that @grieco2017 use the number of competitors in the
+same HSA, which would be preferrable. However, this dataset does not
+contain information on HSAs. If you are feeling ambitious, you could
+try to find data linking city, state to HSA, and use that to calculate
+competitors in the same HSA.
+
+```{julia}
+upcase(x) = Base.uppercase(x)
+upcase(m::Missing) = missing
+df = cleandf
+df[!,:provcity] = upcase.(df[!,:provcity])
+comps = combine(groupby(df,[:provcity,:year]),
+    	       	:dy =>
+			        (x -> length(skipmissing(x).>=0.0)) =>
+			        :competitors
+                )
+comps = comps[.!ismissing.(comps.provcity),:]
+df = outerjoin(df, comps, on = [:provcity,:year], matchmissing=:equal)
+@assert nrow(df)==nrow(cleandf)
+cleandf=df
+```
+
+
+## Summary Statistics
+
+::: {.callout-note title="Question"}
+
+Create a table (or multiple tables) similar to Tables 1-3 of @grieco2017.
+Comment on any notable differences. The following code
+will help you get started.
+
+:::
+
+```{julia}
+# at the very least, you will need to change this list
+vars = [:phd, :labor, :hiring]
+
+# You shouldn't neeed to change this function, but you can if you want
+function summaryTable(df, vars;
+    	              funcs=[mean, std, x->length(collect(x))],
+	                  colnames=[:Variable, :Mean, :StdDev, :N])
+  	# In case you want to search for information about the syntax used here,
+	# [XXX for XXX] is called a comprehension
+  	# The ... is called the splat operator
+  	DataFrame([vars [[f(skipmissing(df[!,v])) for v in vars] for f in funcs]...], colnames)
+end
+summaryTable(cleandf, vars)
+```
+
+## Figures
+
+::: {.callout-note title="Question"}
+
+Create some figures to explore the data. Try to
+be creative.  Are there any strange patterns or other obvious
+problems with the data?
+
+:::
+
+Here are some examples to get started. You may want to look at the
+StatPlots.jl, Plots.jl, VegaLite.jl, or AlgebraOfGraphics.jl github pages for more examples.
+
+```{julia}
+using StatsPlots
+vars = [:dy, :hdy, :phd]
+inc = completecases(cleandf[!,vars]) # missings will mess up corrplot
+@df cleandf[inc,vars] corrplot(cols(vars))
+```
+
+
+```{julia}
+function yearPlot(var; df=cleandf)
+  data = df[completecases(df[!,[:year, var]]),:]
+  scatter(data[!,:year], data[!,var], alpha=0.1, legend=:none,
+          markersize=3, markerstrokewidth=0.0)
+	q = [0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
+  yearmeans = combine(groupby(data, :year),
+               var => (x->[(mean(skipmissing(x)),
+						  quantile(skipmissing(x),q)...)])  =>
+		["mean", (x->"q$(Int(100*x))").(q)...])
+	sort!(yearmeans,:year)
+  @df yearmeans plot!(:year, :mean, colour = ^(:black), linewidth=4)
+  fig = @df yearmeans plot!(:year, cols(3:ncol(yearmeans)),
+                      colour = ^(:red), alpha=0.4, legend=:none,
+                      xlabel="year", ylabel=String(var))
+  return(fig)
+end
+fig=yearPlot(:labor)
+plot!(fig, ylim=[0,50]) # adjust y-axis range
+```
+
+The above plot shows a scatter of labor vs year. The black lines are
+average labor each year. The red lines are the 0.01, 0.1, 0.25, 0.5,
+0.75, 0.9, and 0.99 quantiles conditional on year.
+
+
+::: {.callout-note title="Question"}
+
+Please hand in both your modified `dialysis-1.qmd` and an html or pdf rendering of it. To render html, execute `quarto render dialysis-1.qmd`
+
+:::

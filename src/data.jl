@@ -234,7 +234,6 @@ function loadDFR(;recreate=false)
   if isfile(dfrfile) && !recreate
     z = ZipFile.Reader(dfrfile)
     csvinzip = filter(x->occursin(".csv",x.name), z.files)
-    @show csvinzip
     length(csvinzip)==1 || error("Multiple csv files found in $file")
     println("Reading $csvinzip[1]")
     df = CSV.File(read(csvinzip[1])) |> DataFrame
@@ -246,7 +245,6 @@ function loadDFR(;recreate=false)
 
   files = readdir(datadir,join=true)
   files = files[occursin.(r"\d\d\d\d.zip",files )]
-  @show files
   years = [parse(Int64,match(r"(\d\d\d\d)",file).captures[1]) for file in files]
   for y ∈ minimum(years):maximum(years)
     if !(y ∈ years)
