@@ -26,8 +26,7 @@ requirejs.config({
       "highlight"
     ]
   }
-}
-});
+}});
 ////////////////////////////////////////////////////////////////////////////////
 require([], function() {
 window.MathJax = {
@@ -75,8 +74,7 @@ window.MathJax = {
       2
     ]
   }
-}
-;
+};
 
 (function () {
     var script = document.createElement('script');
