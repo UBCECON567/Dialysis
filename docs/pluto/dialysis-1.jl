@@ -5,7 +5,7 @@ using Markdown
 using InteractiveUtils
 
 # ╔═╡ 5c1aeb4f-fef2-41d0-813f-eb78728ea83b
-begin 
+begin
 	# the Dialysis.jl package is not in the official Julia registry, so we need to tell Julia / Pluto where to find it
 	import Pkg
 	Pkg.Registry.add(Pkg.Registry.RegistrySpec(url="https://github.com/schrimpf/juliaregistry.git"))
@@ -68,13 +68,13 @@ Pluto.run()
 This will open the Pluto interface in your browser. If you close Julia
 and want to start Pluto again, you only need to repeat this last step.
 
-Download the notebook file from [github](https://raw.githubusercontent.com/UBCECON567/Dialysis/master/docs/pluto/dialysis-1.jl) and open it in Pluto. 
+Download the notebook file from [github](https://raw.githubusercontent.com/UBCECON567/Dialysis/master/docs/pluto/dialysis-1.jl) and open it in Pluto.
 
-!!! tip 
-    Instead of downloading the notebook manually, you can let Julia download when Pluto starts by entering 
+!!! tip
+    Instead of downloading the notebook manually, you can let Julia download when Pluto starts by entering
     ```julia
     Pluto.run(notebook="https://raw.githubusercontent.com/UBCECON567/Dialysis/master/docs/pluto/dialysis-1.jl")
-    ``` 
+    ```
     instead of `Pluto.run()`. Be sure to save the notebook somewhere on your computer after it opens.
 """
 
@@ -119,7 +119,7 @@ sections of either QuantEcon or Think Julia is recommended.
 
 - [Julia Slack](https://julialang.org/slack/)
 
-!!! tip 
+!!! tip
     Pluto has a handful of keyboard shortcuts. You can view them by pressing F1 or Ctrl+?
 
 """
@@ -143,7 +143,7 @@ md"""
 ## Packages
 
 Like many programming environments (R, Python, etc), Julia relies on
-packages for lots of its functionality. Pluto has [built-in package management](https://github.com/fonsp/Pluto.jl/wiki/%F0%9F%8E%81-Package-management), and Julia automatically downloaded all the packages this notebook uses when you first opened it. 
+packages for lots of its functionality. Pluto has [built-in package management](https://github.com/fonsp/Pluto.jl/wiki/%F0%9F%8E%81-Package-management), and Julia automatically downloaded all the packages this notebook uses when you first opened it.
 """
 
 # ╔═╡ a75918ae-5f73-11eb-3a3e-2f64c0dcc49c
@@ -195,12 +195,12 @@ datadic
 # ╔═╡ 5ea12c9c-5f79-11eb-34e7-2d7f07854b31
 md"""
 For more information on any of the variables, look at the documentation included with any of the "Dialysis Facility Report
-Data for FY20XX" zip files at [data.cms.gov](https://data.cms.gov/quality-of-care/medicare-dialysis-facilities). 
+Data for FY20XX" zip files at [data.cms.gov](https://data.cms.gov/quality-of-care/medicare-dialysis-facilities).
 """
 
 # ╔═╡ 95ad1f3c-5f79-11eb-36fb-1b384c84317c
 md"""
-We will begin our analysis with some data cleaning. Then we will create some  exploratory statistics and figures. There are at least two reasons for this. 
+We will begin our analysis with some data cleaning. Then we will create some  exploratory statistics and figures. There are at least two reasons for this.
 First, we want to
 check for any anomalies in the data, which may indicate an error in
 our code, our understanding of the data, or the data itself. Second,
@@ -217,10 +217,10 @@ md"""
 
 ## Data Cleaning
 
-From the above, we can see that the data has some problems. It appears that "." is used to indicate missing. We should replace these with `missing`. Also, the `eltype` of most columns is `String.` We should convert to numeric types where appropriate. 
+From the above, we can see that the data has some problems. It appears that "." is used to indicate missing. We should replace these with `missing`. Also, the `eltype` of most columns is `String.` We should convert to numeric types where appropriate.
 
 !!! note "Types"
-    Every variable in Julia has a [type](https://docs.julialang.org/en/v1/manual/types/), which determines what information the variable can store. You can check the type of a variable with `typeof(variable)`. The columns of our `dialysis` DataFrame will each be some array-like type that can hold some particular types of elements. For examble, `typeof(dialysis[!,:nursePT])` (or equivalently `typeof(dialysis.nursePT)` should currently be `Array{String, 1}`. This means that right now the nursePT column can only hold strings. Therefore trying to assign an integer to an element of the column like `dialysis[2, :nursePT] = 0` will cause an error. If we want to convert the element type of the column, we have to assign the column to an entirely new array. We will do this below. 
+    Every variable in Julia has a [type](https://docs.julialang.org/en/v1/manual/types/), which determines what information the variable can store. You can check the type of a variable with `typeof(variable)`. The columns of our `dialysis` DataFrame will each be some array-like type that can hold some particular types of elements. For examble, `typeof(dialysis[!,:nursePT])` (or equivalently `typeof(dialysis.nursePT)` should currently be `Array{String, 1}`. This means that right now the nursePT column can only hold strings. Therefore trying to assign an integer to an element of the column like `dialysis[2, :nursePT] = 0` will cause an error. If we want to convert the element type of the column, we have to assign the column to an entirely new array. We will do this below.
 
 !!! note "Missing"
     [Julia includes a special type and value to represent missing data](https://docs.julialang.org/en/v1/manual/missing/). The element type of arrays that include `missing` will be `Union{Missing, OTHERTYPE}` where `OTHERTYPE` is something like `String` or `Float64`. The `Union` means each element of the array can hold either type `Missing` or `OTHERTYPE`. Some functions will behave reasonably when they encounter `missing` values, but many do not. As a result, we will have to be slightly careful with how we handle `missing` values.
@@ -271,7 +271,7 @@ md"""
     out = Array{Bool, 1}(undef, length(X))
     for i in 1:length(x)
       out[i] = occursin(r"(^\.$)|(^(-|)\d+)$",X[i])
-    end    
+    end
     ```
 
 """
@@ -305,7 +305,7 @@ md"""
     However, for some columns, we want to leave strings as strings, and for others we want to convert strings to dates.
     The builtin parse function only converts strings to numbers.
     However, we can define additional parse methods and use multiple dispatch to handle these cases.
-	
+
 	🏴‍☠️ Adding methods for types that we did not create to existing functions is called [type piracy](https://docs.julialang.org/en/v1/manual/style-guide/#Avoid-type-piracy). Type piracy can break code in unexpected ways, so it should be avoided. Instead of definining new methods for `Base.parse`, we create a new function `myparse` and add methods to it.🏴‍☠️
 
     This approach will make the `converttype` function defined below very short and simple.
@@ -315,8 +315,8 @@ md"""
 begin
 	myparse(t,x) = Base.parse(t,x)
 	# we need a parse that "converts" a string to string
-	myparse(::Type{S}, x::S) where S <: AbstractString = x 
-	
+	myparse(::Type{S}, x::S) where S <: AbstractString = x
+
 	# a version of parse that works for the date formats in this data
 	myparse(::Type{Dates.Date}, x::AbstractString) = occursin(r"\D{3}",x) ? Date(x, "dduuuyyyyy") : Date(x,"m/d/y")
 	myparse
@@ -334,9 +334,9 @@ md"""
 # ╔═╡ 985c4280-5fec-11eb-362b-21e463e63f8d
 md"""
 !!! info "Array Comprehension"
-    In `converttype`, we use an [array comprehension](https://docs.julialang.org/en/v1/manual/arrays/#man-comprehensions) to create the return value. Comprehensions  are a concise and convenient way to create new arrays from existing ones. 
+    In `converttype`, we use an [array comprehension](https://docs.julialang.org/en/v1/manual/arrays/#man-comprehensions) to create the return value. Comprehensions  are a concise and convenient way to create new arrays from existing ones.
 
-    [Generator expressions](https://docs.julialang.org/en/v1/manual/arrays/#Generator-Expressions) are a related concept. 
+    [Generator expressions](https://docs.julialang.org/en/v1/manual/arrays/#Generator-Expressions) are a related concept.
 """
 
 # ╔═╡ 7c756c72-5f83-11eb-28d5-7b5654c51ea3
@@ -357,7 +357,7 @@ converttype([".","315", "-35.8"])
 # ╔═╡ a3452e58-5f85-11eb-18fb-e5f00173defb
 clean1 = let
 	clean1 = mapcols(converttype, dialysis) # apply converttype to each column of dialysis
-	
+
 	# fix the identifier strings. some years they're listed as ="IDNUMBER", others, they're just IDNUMBER
 	clean1.provfs = replace.(clean1.provfs, "="=>"")
 	clean1.provfs = replace.(clean1.provfs,"\""=>"")
@@ -407,7 +407,7 @@ The median variance is generally 0---most providers report variables consistentl
 
 # ╔═╡ 468e9380-5f96-11eb-1e57-9bf6b185cbd1
 clean2=let
-	function combinefiscalyears(x::AbstractArray{T}) where T <: Union{Missing,Number}
+   function combinefiscalyears(x::AbstractArray{T}) where T <: Union{Missing,Number}
 		if all(ismissing.(x))
 			return(missing)
 		else
@@ -452,7 +452,7 @@ md"""
 """
 
 # ╔═╡ c7c1fdee-5f9c-11eb-00bb-bd871c7f7d92
-clean21 = let 
+clean21 = let
 		clean2.labor = clean2[!,:nursePT]*0.5 + clean2[!,:nurseFT]*1.0 # + more -- you should modify this
         clean2
 end;
@@ -460,10 +460,10 @@ end;
 # ╔═╡ 70b24c85-dcfb-4ab4-bee9-7ba993686290
 md"""
 
-!!! warning 
+!!! warning
     Pluto's depedency detection and reactivity can be broken by modifying variables in place. Creating a cell that contains only
     ```julia
-    clean2.labor = clean2[!,:nursePT]*2 
+    clean2.labor = clean2[!,:nursePT]*2
     ```
     would be allowed, but Pluto will not recognize that modifying such a cell requires re-running all cells that reference clean2 afterward.
 
@@ -522,7 +522,7 @@ unique(clean2.owner_f)
 countmap(clean2.chainnam)
 
 # ╔═╡ 51012006-5f9f-11eb-1c62-3595a0dbd003
-clean23 = let 
+clean23 = let
 	clean22.forprofit = (clean22.owner_f .== "For Profit") # modify if needed
 	f(x) = ismissing(x) ? false : occursin(r"(FRESENIUS|FMC)",x) # improve if needed
 	clean22.fresenius = f.(clean22.chainnam)
@@ -539,14 +539,14 @@ State inspection rates are a bit more complicated to create.
 """
 
 # ╔═╡ 5c8d4f8e-5ff3-11eb-0c55-d1a3795358e3
-clean3 = let 
+clean3 = let
 	# compute days since most recent inspection
-	inspect = combine(groupby(clean23, :provfs), 
+	inspect = combine(groupby(clean23, :provfs),
 		:surveydt_f => x->[unique(skipmissing(x))])
 	rename!(inspect, [:provfs, :inspection_dates])
 	df=innerjoin(clean23, inspect, on=:provfs)
 	@assert nrow(df)==nrow(clean23)
-	function dayssince(year, dates) 
+	function dayssince(year, dates)
 		today = Date(year, 12, 31)
 		past = [x.value for x in today .- dates if x.value>=0]
 		if length(past)==0
@@ -555,15 +555,15 @@ clean3 = let
 			return(minimum(past))
 		end
 	end
-	
-	df=transform(df, [:year, :inspection_dates] => (y,d)->dayssince.(y,d))	
+
+	df=transform(df, [:year, :inspection_dates] => (y,d)->dayssince.(y,d))
 	rename!(df, names(df)[end] =>:days_since_inspection)
 	df[!,:inspected_this_year] = ((df[!,:days_since_inspection].>=0) .&
 		(df[!,:days_since_inspection].<365))
-	
+
 	# then take the mean by state
 	stateRates = combine(groupby(df, [:state, :year]),
-                	:inspected_this_year => 
+                	:inspected_this_year =>
 			(x->mean(skipmissing(x))) => :state_inspection_rate)
 	df = innerjoin(df, stateRates, on=[:state, :year])
 	@assert nrow(df)==nrow(clean2)
@@ -584,18 +584,18 @@ competitors in the same HSA.
 """
 
 # ╔═╡ 00c8ef48-5ff8-11eb-1cf3-f7d391228226
-clean4=let 
+clean4=let
 	df = clean3
 	upcase(x) = Base.uppercase(x)
 	upcase(m::Missing) = missing
 	df[!,:provcity] = upcase.(df[!,:provcity])
 	comps = combine(groupby(df,[:provcity,:year]),
-    	       		:dy => 
-			(x -> length(skipmissing(x).>=0.0)) => 
+    	       		:dy =>
+			(x -> length(skipmissing(x).>=0.0)) =>
 			:competitors
            )
 	comps = comps[.!ismissing.(comps.provcity),:]
- 	df = outerjoin(df, comps, on = [:provcity,:year], matchmissing=:equal)	
+ 	df = outerjoin(df, comps, on = [:provcity,:year], matchmissing=:equal)
 	@assert nrow(df)==nrow(clean3)
 	df
 end
@@ -657,7 +657,7 @@ function yearPlot(var; df=clean4)
 	q = [0.01, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
   yearmeans = combine(groupby(data, :year),
                var => (x->[(mean(skipmissing(x)),
-						  quantile(skipmissing(x),q)...)])  => 
+						  quantile(skipmissing(x),q)...)])  =>
 		["mean", (x->"q$(Int(100*x))").(q)...])
 	sort!(yearmeans,:year)
   @df yearmeans plot!(:year, :mean, colour = ^(:black), linewidth=4)
@@ -668,7 +668,7 @@ function yearPlot(var; df=clean4)
 end
 
 # ╔═╡ 12a3d1a0-5fa4-11eb-11a3-297c335010c7
-let 
+let
 	fig=yearPlot(:labor)
 	plot!(fig, ylim=[0,50]) # adjust y-axis range
 end
