@@ -68,7 +68,7 @@ I recommend using [Quarto](https://quarto.org/) for writing your solutions, whic
 ### This Assignment
 
 If using Quarto for your answers, download the `.qmd` file for this assignment from https://github.com/UBCECON567/Dialysis/blob/master/docs/qmd/dialysis-1.qmd , and put it in a folder by itself. For the bibliography to work, you'll also need https://github.com/UBCECON567/Dialysis/blob/master/docs/qmd/dialysis.bib in the same folder.
-Change the author in the 4th line of `dialysis-1.qmd`. You can write your answers below each `!!! question` block. If you want, you can delete sections that are not questions, but that's up to you.
+Change the author in the 4th line of `dialysis-1.qmd`. You can write your answers below each question block. If you want, you can delete sections that are not questions, but that's up to you.
 
 If using another tool for your answers, turn in both your code and prose. These could be in the same file (like a Jupyter or Pluto notebook) or separate (e.g. a .jl file of code and pdf of prose). Your code should run, so it should include copies of code blocks from this document that you execute.
 

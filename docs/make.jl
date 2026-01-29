@@ -74,7 +74,7 @@ Base.cd(@__DIR__) # change to the directory of this script
 input_dir = "qmd"
 output_dir= "src"
 qmd_files = filter(f -> endswith(f, ".qmd") && !startswith(f,"."), readdir(input_dir))
-force_render=true
+force_render=false
 for qmd_file in qmd_files
     input_file = joinpath(input_dir, qmd_file)
     output_file = joinpath(output_dir, replace(basename(qmd_file), ".qmd" => ".md"))
@@ -138,7 +138,7 @@ end
 
 
 
-false && deploydocs(;
+deploydocs(;
     repo="github.com/$gitorg/$repo.git", #Remotes.GitHub("ubcecon", "PartitioendRegression"),
     devbranch="master",
     target="build",
